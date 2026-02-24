@@ -1,22 +1,26 @@
 use reqwest::Client;
+use std::time::Duration;
+use tokio::task;
 
 pub async fn fetch(endpoint: String, _freq: i32) {
     let client = Client::new();
+    // TODO: implement a custum interval from user input
+    let mut interval = tokio::time::interval(Duration::from_secs(1));
 
-    let cloned_client = client.clone();
-    let cloned_endpoint = endpoint.clone();
+    loop {
+        interval.tick().await;
+        let mut handlers = Vec::new();
 
-    let _ = tokio::spawn(async move {
-        let response = cloned_client
-            .get(cloned_endpoint)
-            .send()
-            .await
-            .unwrap()
-            .text()
-            .await
-            .unwrap();
+        let client = client.clone();
+        let endpoint = endpoint.clone();
 
-        println!("Request");
-        println!("{:?}", response);
-    }).await;
+        handlers.push(task::spawn(async move {
+            let response = client.get(endpoint).send().await.unwrap();
+            println!("{:?}", response.status());
+        }));
+
+        for handle in handlers {
+            handle.await.unwrap();
+        }
+    }
 }
