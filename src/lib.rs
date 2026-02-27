@@ -76,13 +76,11 @@ where
     }
     
     pub async fn get(&self, url: &str) -> Result<reqwest::Response, reqwest::Error> {
+        let global_key = &String::from("global");
+        
         match self.hosts.get(&url.to_string()) {
-            Some(host) => {
-                host.limit.until_ready().await;
-            },
-            None => {
-                self.default_limit.until_key_ready(&String::from("global")).await;
-            }
+            Some(host) => host.limit.until_ready().await,
+            None => self.default_limit.until_key_ready(global_key).await,
         }
         
         self.client.get(url).send().await
