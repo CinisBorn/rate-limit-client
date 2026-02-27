@@ -49,21 +49,11 @@ where
     C::Instant: Reference, 
 {
     pub fn build_with_clock(clock: C, quota: NonZeroU32, interval: TimeInterval) -> Self {
-        let burst = NonZeroU32::new(1).expect("Be the number 1");
-        let limit = match interval {
-            TimeInterval::ByHours => {
-                let quota = Quota::per_hour(quota).allow_burst(burst);
-                RateLimiter::new(quota, DashMapStateStore::default(), clock.clone())
-            },
-            TimeInterval::ByMinutes => {
-                let quota = Quota::per_minute(quota).allow_burst(burst);
-                RateLimiter::new(quota, DashMapStateStore::default(), clock.clone())
-            },
-            TimeInterval::BySeconds => {
-                let quota = Quota::per_second(quota).allow_burst(burst);
-                RateLimiter::new(quota, DashMapStateStore::default(), clock.clone())
-            }
-        };
+        let limit = RateLimiter::new(
+            build_quota(quota, interval), 
+            DashMapStateStore::default(), 
+            clock.clone()
+        );
         
         Self {
             client: Client::new(),
@@ -74,24 +64,11 @@ where
     }
     
     pub fn build_host(mut self, host: &str, quota: NonZeroU32, interval: TimeInterval) -> Self {
-        let burst = NonZeroU32::new(1).expect("Be the number 1");
-        let limit = match interval {
-            TimeInterval::ByHours => {
-                let quota = Quota::per_hour(quota).allow_burst(burst);
-                RateLimiter::direct_with_clock(quota, self.clock.clone())
-            },
-            TimeInterval::ByMinutes => {
-                let quota = Quota::per_minute(quota).allow_burst(burst);
-                RateLimiter::direct_with_clock(quota, self.clock.clone())
-            },
-            TimeInterval::BySeconds => {
-                let quota = Quota::per_second(quota).allow_burst(burst);
-                RateLimiter::direct_with_clock(quota, self.clock.clone())
-            }
-        };
-        let host_config = Host { 
-            limit 
-        };
+        let limit = RateLimiter::direct_with_clock(
+            build_quota(quota, interval), 
+            self.clock.clone()
+        );
+        let host_config = Host { limit };
         
         self.hosts.insert(host.to_string(), host_config);
         
@@ -109,5 +86,15 @@ where
         }
         
         self.client.get(url).send().await
+    }
+}
+
+fn build_quota(quota: NonZeroU32, interval: TimeInterval) -> Quota {
+    let burst = NonZeroU32::new(1).expect("Be the number 1");
+    
+    match interval {
+        TimeInterval::ByHours => Quota::per_hour(quota).allow_burst(burst),
+        TimeInterval::ByMinutes => Quota::per_minute(quota).allow_burst(burst),
+        TimeInterval::BySeconds => Quota::per_second(quota).allow_burst(burst),
     }
 }
