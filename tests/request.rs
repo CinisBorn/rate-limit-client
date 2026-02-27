@@ -1,6 +1,5 @@
-use std::num::NonZeroU32;
+use http_client::RateLimitClient;
 
-use http_client::{RateLimitClient, TimeInterval};
 use wiremock::{
     Mock, 
     MockServer, 
@@ -18,9 +17,7 @@ async fn response_with_ok() {
         .mount(&server)
         .await;
     
-    let quota = NonZeroU32::new(10).expect("No Zero");
-    let interval = TimeInterval::ByMinutes;
-    let client = RateLimitClient::build(quota, interval);
+    let client = RateLimitClient::build_default();
     let url = format!("{}/hello", &server.uri());
     
     let response = client.get(&url).await.unwrap();
