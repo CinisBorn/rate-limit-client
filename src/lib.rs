@@ -8,8 +8,8 @@ use std::{collections::HashMap, num::NonZeroU32};
 use reqwest::Client;
 
 type Middleware<C> = NoOpMiddleware<<C as Clock>::Instant>;
-type DirectLimiter<C> = governor::RateLimiter<NotKeyed, InMemoryState, C, Middleware<C>>;
-type KeyedLimiter<C> = governor::RateLimiter<String, DashMapStateStore<String>, C, Middleware<C>>;
+type DirectLimiter<C> = RateLimiter<NotKeyed, InMemoryState, C, Middleware<C>>;
+type KeyedLimiter<C> = RateLimiter<String, DashMapStateStore<String>, C, Middleware<C>>;
 
 pub enum TimeInterval {
     BySeconds,
@@ -31,8 +31,8 @@ struct Host<C: Clock + Clone> {
 impl RateLimitClient<DefaultClock> {
     pub fn build_default() -> Self {
         let burst = NonZeroU32::new(10).expect("No Zero Burst");
-        let quota = governor::Quota::per_second(burst);
-        let limit = governor::RateLimiter::keyed(quota);
+        let quota = Quota::per_second(burst);
+        let limit = RateLimiter::keyed(quota);
         
         Self {
             client: Client::new(),
