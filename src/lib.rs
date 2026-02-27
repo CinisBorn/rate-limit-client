@@ -41,11 +41,22 @@ impl RateLimitClient<DefaultClock> {
             hosts: HashMap::new()
         }
     }
+    
+    pub async fn get(&self, url: &str) -> Result<reqwest::Response, reqwest::Error> {
+        let global_key = &String::from("global");
+        
+        match self.hosts.get(&url.to_string()) {
+            Some(host) => host.limit.until_ready().await,
+            None => self.default_limit.until_key_ready(global_key).await,
+        }
+        
+        self.client.get(url).send().await
+    }
 }
 
 impl<C> RateLimitClient<C> 
 where
-    C: Clock + Clone + ReasonablyRealtime,
+    C: Clock + Clone,
     C::Instant: Reference, 
 {
     pub fn build_with_clock(clock: C, quota: NonZeroU32, interval: TimeInterval) -> Self {
@@ -63,6 +74,10 @@ where
         }
     }
     
+    pub fn get_default_limit(&self) -> &KeyedLimiter<C> {
+        &self.default_limit
+    }
+    
     pub fn build_host(mut self, host: &str, quota: NonZeroU32, interval: TimeInterval) -> Self {
         let limit = RateLimiter::direct_with_clock(
             build_quota(quota, interval), 
@@ -73,17 +88,6 @@ where
         self.hosts.insert(host.to_string(), host_config);
         
         self 
-    }
-    
-    pub async fn get(&self, url: &str) -> Result<reqwest::Response, reqwest::Error> {
-        let global_key = &String::from("global");
-        
-        match self.hosts.get(&url.to_string()) {
-            Some(host) => host.limit.until_ready().await,
-            None => self.default_limit.until_key_ready(global_key).await,
-        }
-        
-        self.client.get(url).send().await
     }
 }
 
