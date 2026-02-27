@@ -1,6 +1,6 @@
 use std::num::NonZeroU32;
 
-use http_client::{ClientBuilder, TimeMeasurement};
+use http_client::{ClientBuilder, TimeInterval};
 use wiremock::{
     Mock, 
     MockServer, 
@@ -19,7 +19,7 @@ async fn response_with_ok() {
         .await;
     
     let quota = NonZeroU32::new(10).expect("No Zero");
-    let interval = TimeMeasurement::ByMinutes;
+    let interval = TimeInterval::ByMinutes;
     let client = ClientBuilder::build(quota, interval);
     let url = format!("{}/hello", &server.uri());
     
