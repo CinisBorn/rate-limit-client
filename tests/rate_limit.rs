@@ -41,3 +41,43 @@ fn shoud_respect_limit_in_request() {
     assert!(client.get_default_limit().check_key(&url).is_ok());
     assert!(client.get_default_limit().check_key(&url).is_err());
 }
+
+#[test]
+fn should_respect_limit_by_host() {
+    let clock = FakeRelativeClock::default();
+    let quota = NonZeroU32::new(1).unwrap();
+    
+    let host1 = "http://veryhappywithit.com";
+    let host2 = "http://coolhost.com";
+    
+    let host1_quota = NonZeroU32::new(10).unwrap();
+    let host2_quota = NonZeroU32::new(5).unwrap();
+    
+    let global_interval = http_client::TimeInterval::ByHours;
+    let host1_interval = http_client::TimeInterval::ByHours;
+    let host2_interval = http_client::TimeInterval::ByMinutes;
+    
+    let client = RateLimitClient::build_with_clock(clock.clone(), quota, global_interval)
+        .build_host(host1, host1_quota, host1_interval)
+        .build_host(host2, host2_quota, host2_interval);
+    
+    assert!(client.get_host_limit(host1).unwrap().check().is_ok());
+    assert!(client.get_host_limit(host1).unwrap().check().is_err());
+    
+    clock.advance(Duration::from_hours(1));
+    
+    assert!(client.get_host_limit(host1).unwrap().check().is_ok());
+    assert!(client.get_host_limit(host1).unwrap().check().is_err());
+    
+    clock.advance(Duration::from_secs(1));
+    
+    assert!(client.get_host_limit(host1).unwrap().check().is_err());
+
+    assert!(client.get_host_limit(host2).unwrap().check().is_ok());
+    assert!(client.get_host_limit(host2).unwrap().check().is_err());
+    
+    clock.advance(Duration::from_mins(5));
+    
+    assert!(client.get_host_limit(host2).unwrap().check().is_ok());
+    assert!(client.get_host_limit(host2).unwrap().check().is_err());
+}

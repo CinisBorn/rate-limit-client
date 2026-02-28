@@ -78,6 +78,13 @@ where
         &self.default_limit
     }
     
+    pub fn get_host_limit(&self, key: &str) -> Result<&DirectLimiter<C>, ()> {
+        match self.hosts.get(key) {
+            Some(k) => Ok(&k.limit),
+            None => Err(())
+        }
+    }
+    
     pub fn build_host(mut self, host: &str, quota: NonZeroU32, interval: TimeInterval) -> Self {
         let limit = RateLimiter::direct_with_clock(
             build_quota(quota, interval), 
