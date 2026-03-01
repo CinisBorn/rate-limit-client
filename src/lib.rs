@@ -7,6 +7,10 @@ use governor::state::keyed::{DashMapStateStore};
 use std::{collections::HashMap, num::NonZeroU32};
 use reqwest::Client;
 
+use helpers::build_quota;
+
+mod helpers;
+
 type Middleware<C> = NoOpMiddleware<<C as Clock>::Instant>;
 type DirectLimiter<C> = RateLimiter<NotKeyed, InMemoryState, C, Middleware<C>>;
 type KeyedLimiter<C> = RateLimiter<String, DashMapStateStore<String>, C, Middleware<C>>;
@@ -98,12 +102,3 @@ where
     }
 }
 
-fn build_quota(quota: NonZeroU32, interval: TimeInterval) -> Quota {
-    let burst = NonZeroU32::new(1).expect("Be the number 1");
-    
-    match interval {
-        TimeInterval::ByHours => Quota::per_hour(quota).allow_burst(burst),
-        TimeInterval::ByMinutes => Quota::per_minute(quota).allow_burst(burst),
-        TimeInterval::BySeconds => Quota::per_second(quota).allow_burst(burst),
-    }
-}
