@@ -7,6 +7,7 @@ edition = "2024"
 tokio = { version = "1.49.0", features = ["full"] }
 reqwest = { version = "0.13", features = ["json"] }
 governor = "0.10.4"
+url = "2.5.8"
 
 [dev-dependencies]
 wiremock = "0.6.5"

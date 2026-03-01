@@ -1,5 +1,5 @@
 use governor::{RateLimiter, Quota};
-use governor::clock::{Clock, DefaultClock, ReasonablyRealtime, Reference};
+use governor::clock::{Clock, DefaultClock, Reference};
 use governor::middleware::NoOpMiddleware;
 use governor::state::{NotKeyed, InMemoryState};
 use governor::state::keyed::{DashMapStateStore};

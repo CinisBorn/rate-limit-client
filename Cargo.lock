@@ -493,6 +493,7 @@ dependencies = [
  "governor",
  "reqwest",
  "tokio",
+ "url",
  "wiremock",
 ]
 
