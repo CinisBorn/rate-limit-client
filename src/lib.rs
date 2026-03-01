@@ -8,18 +8,14 @@ use std::{collections::HashMap, num::NonZeroU32};
 use reqwest::Client;
 
 use helpers::build_quota;
+pub use models::TimeInterval;
 
 mod helpers;
+mod models;
 
 type Middleware<C> = NoOpMiddleware<<C as Clock>::Instant>;
 type DirectLimiter<C> = RateLimiter<NotKeyed, InMemoryState, C, Middleware<C>>;
 type KeyedLimiter<C> = RateLimiter<String, DashMapStateStore<String>, C, Middleware<C>>;
-
-pub enum TimeInterval {
-    BySeconds,
-    ByMinutes,
-    ByHours,
-}
 
 pub struct RateLimitClient<C: Clock + Clone = DefaultClock> {
     client: Client,
