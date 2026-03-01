@@ -3,3 +3,9 @@ pub enum TimeInterval {
     ByMinutes,
     ByHours,
 }
+
+#[derive(Debug)]
+pub enum UrlError {
+    InvalidHost,
+    InvalidUrlPath,
+}

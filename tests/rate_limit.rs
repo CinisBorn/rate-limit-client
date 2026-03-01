@@ -1,7 +1,7 @@
+use governor::clock::FakeRelativeClock;
+use governor::{Quota, RateLimiter};
 use std::num::NonZeroU32;
 use std::time::Duration;
-use governor::clock::{FakeRelativeClock};
-use governor::{Quota, RateLimiter};
 
 use http_client::RateLimitClient;
 
@@ -10,34 +10,29 @@ fn should_respect_limit() {
     let fake_clock = FakeRelativeClock::default();
     let quota = Quota::per_second(NonZeroU32::new(1).unwrap());
     let limit = RateLimiter::direct_with_clock(quota, fake_clock);
-    
+
     assert!(limit.check().is_ok());
     assert!(limit.check().is_err());
 }
 
 #[test]
 fn shoud_respect_limit_in_request() {
-
     let clock = FakeRelativeClock::default();
     let quota = NonZeroU32::new(1).unwrap();
     let interval = http_client::TimeInterval::ByHours;
-    let client = RateLimitClient::build_with_clock(
-        clock.clone(), 
-        quota, 
-        interval
-    );
-    
+    let client = RateLimitClient::build_with_clock(clock.clone(), quota, interval);
+
     let url = format!("https://supercalm.com");
-    
+
     assert!(client.get_default_limit().check_key(&url).is_ok());
     assert!(client.get_default_limit().check_key(&url).is_err());
-    
-    clock.advance(Duration::from_secs(1)); 
-    
+
+    clock.advance(Duration::from_secs(1));
+
     assert!(client.get_default_limit().check_key(&url).is_err());
-    
-    clock.advance(Duration::from_hours(1)); 
-    
+
+    clock.advance(Duration::from_hours(1));
+
     assert!(client.get_default_limit().check_key(&url).is_ok());
     assert!(client.get_default_limit().check_key(&url).is_err());
 }
@@ -46,38 +41,40 @@ fn shoud_respect_limit_in_request() {
 fn should_respect_limit_by_host() {
     let clock = FakeRelativeClock::default();
     let quota = NonZeroU32::new(1).unwrap();
-    
+
     let host1 = "http://veryhappywithit.com";
     let host2 = "http://coolhost.com";
-    
+
     let host1_quota = NonZeroU32::new(10).unwrap();
     let host2_quota = NonZeroU32::new(5).unwrap();
-    
+
     let global_interval = http_client::TimeInterval::ByHours;
     let host1_interval = http_client::TimeInterval::ByHours;
     let host2_interval = http_client::TimeInterval::ByMinutes;
-    
+
     let client = RateLimitClient::build_with_clock(clock.clone(), quota, global_interval)
         .build_host(host1, host1_quota, host1_interval)
-        .build_host(host2, host2_quota, host2_interval);
-    
+        .unwrap()
+        .build_host(host2, host2_quota, host2_interval)
+        .unwrap();
+
     assert!(client.get_host_limit(host1).unwrap().check().is_ok());
     assert!(client.get_host_limit(host1).unwrap().check().is_err());
-    
+
     clock.advance(Duration::from_hours(1));
-    
+
     assert!(client.get_host_limit(host1).unwrap().check().is_ok());
     assert!(client.get_host_limit(host1).unwrap().check().is_err());
-    
+
     clock.advance(Duration::from_secs(1));
-    
+
     assert!(client.get_host_limit(host1).unwrap().check().is_err());
 
     assert!(client.get_host_limit(host2).unwrap().check().is_ok());
     assert!(client.get_host_limit(host2).unwrap().check().is_err());
-    
+
     clock.advance(Duration::from_mins(5));
-    
+
     assert!(client.get_host_limit(host2).unwrap().check().is_ok());
     assert!(client.get_host_limit(host2).unwrap().check().is_err());
 }
