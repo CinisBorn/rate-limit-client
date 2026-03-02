@@ -52,11 +52,10 @@ fn should_respect_limit_by_host() {
     let host1_interval = http_client::TimeInterval::ByHours;
     let host2_interval = http_client::TimeInterval::ByMinutes;
 
-    let client = RateLimitClient::build_with_clock(clock.clone(), quota, global_interval)
-        .build_host(host1, host1_quota, host1_interval)
-        .unwrap()
-        .build_host(host2, host2_quota, host2_interval)
-        .unwrap();
+    let mut client = RateLimitClient::build_with_clock(clock.clone(), quota, global_interval);
+    
+    client.build_host(host1, host1_quota, host1_interval);
+    client.build_host(host2, host2_quota, host2_interval);
 
     assert!(client.get_host_limit(host1).unwrap().check().is_ok());
     assert!(client.get_host_limit(host1).unwrap().check().is_err());

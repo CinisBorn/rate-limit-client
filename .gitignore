@@ -1,1 +1,4 @@
 /target
+# I use main for test purposes only. Some thing I cannot test deterministically
+# with automated test yet. 
+/src/main.rs

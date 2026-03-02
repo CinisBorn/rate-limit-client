@@ -86,32 +86,18 @@ where
         } else {
             return Err(());
         };
-        
+
         match self.hosts.get(&host) {
             Some(k) => Ok(&k.limit),
             None => Err(()),
         }
     }
 
-    pub fn build_host(
-        mut self,
-        host: &str,
-        quota: NonZeroU32,
-        interval: TimeInterval,
-    ) -> Result<Self, UrlError> {
-        match get_host(host) {
-            Ok(host) => {
-                let limit = RateLimiter::direct_with_clock(
-                    build_quota(quota, interval),
-                    self.clock.clone(),
-                );
-                let host_config = Host { limit };
+    pub fn build_host(&mut self, host: &str, quota: NonZeroU32, interval: TimeInterval) {
+        let quota = build_quota(quota, interval);
+        let limit = RateLimiter::direct_with_clock(quota, self.clock.clone());
+        let host_config = Host { limit };
 
-                self.hosts.insert(host.to_string(), host_config);
-
-                Ok(self)
-            }
-            Err(e) => Err(e),
-        }
+        self.hosts.insert(host.to_string(), host_config);
     }
 }
