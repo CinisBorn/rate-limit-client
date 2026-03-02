@@ -3,7 +3,7 @@ use governor::{Quota, RateLimiter};
 use std::num::NonZeroU32;
 use std::time::Duration;
 
-use http_client::RateLimitClient;
+use http_client::{RateLimitClient, TimeInterval};
 
 #[test]
 fn should_respect_limit() {
@@ -79,4 +79,20 @@ fn should_respect_limit_by_host() {
 
     assert!(client.host_limit_is_ok(endpoint2));
     assert!(client.host_limit_is_err(endpoint2));
+}
+
+#[test]
+fn host_should_exists() {
+    let quota = NonZeroU32::new(1).unwrap();
+
+    let host1 = "veryhappywithit.com";
+    let host2 = "coolhost.com";
+        
+    let mut client = RateLimitClient::build_default();
+
+    client.build_host(host1, quota, TimeInterval::ByHours);
+    client.build_host(host2, quota, TimeInterval::ByMinutes);
+    
+    assert!(client.host_exists(host1));
+    assert!(client.host_exists(host2))
 }

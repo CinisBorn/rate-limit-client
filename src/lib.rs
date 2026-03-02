@@ -21,7 +21,7 @@ type KeyedLimiter<C> = RateLimiter<String, DashMapStateStore<String>, C, Middlew
 
 pub struct RateLimitClient<C: Clock + Clone = DefaultClock> {
     client: Client,
-    clock: C, // stored so add_host can clone it
+    clock: C,
     hosts: DashMap<String, Host<C>>,
     default_limit: KeyedLimiter<C>,
 }
@@ -102,5 +102,9 @@ where
         let host_config = Host { limit };
 
         self.hosts.insert(host.to_string(), host_config);
+    }
+    
+    pub fn host_exists(&self, host: &str) -> bool {
+        self.hosts.contains_key(host) 
     }
 }
