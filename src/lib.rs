@@ -19,6 +19,14 @@ type Middleware<C> = NoOpMiddleware<<C as Clock>::Instant>;
 type DirectLimiter<C> = RateLimiter<NotKeyed, InMemoryState, C, Middleware<C>>;
 type KeyedLimiter<C> = RateLimiter<String, DashMapStateStore<String>, C, Middleware<C>>;
 
+// TODO: RateLimitClient is too important in the program what any change could
+// break out the whole application. It's possible separete responsibility 
+// with Host too, especially the "hosts" fields. 
+// 
+// I idea is separate Host from Global Config. Maybe a HostConfig could be 
+// possible for coeherence.
+// 
+// It probably will cost a lot of time and handche. 
 pub struct RateLimitClient<C: Clock + Clone = DefaultClock> {
     client: Client,
     clock: C,
