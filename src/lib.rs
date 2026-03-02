@@ -13,6 +13,8 @@ pub use models::{TimeInterval, UrlError};
 mod helpers;
 mod models;
 
+const GLOBAL_KEY: &'static str = "global";
+
 type Middleware<C> = NoOpMiddleware<<C as Clock>::Instant>;
 type DirectLimiter<C> = RateLimiter<NotKeyed, InMemoryState, C, Middleware<C>>;
 type KeyedLimiter<C> = RateLimiter<String, DashMapStateStore<String>, C, Middleware<C>>;
@@ -43,11 +45,9 @@ impl RateLimitClient<DefaultClock> {
     }
 
     pub async fn get(&self, url: &str) -> Result<reqwest::Response, reqwest::Error> {
-        let global_key = &String::from("global");
-
         match self.hosts.get(&url.to_string()) {
             Some(host) => host.limit.until_ready().await,
-            None => self.default_limit.until_key_ready(global_key).await,
+            None => self.default_limit.until_key_ready(&GLOBAL_KEY.to_string()).await,
         }
 
         self.client.get(url).send().await
