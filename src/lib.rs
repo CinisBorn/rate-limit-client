@@ -74,10 +74,14 @@ where
         }
     }
 
-    pub fn get_default_limit(&self) -> &KeyedLimiter<C> {
-        &self.default_limit
+    pub fn global_limit_is_ok(&self, key: &str) -> bool {
+        self.default_limit.check_key(&key.to_string()).is_ok()
     }
 
+    pub fn global_limit_is_err(&self, key: &str) -> bool {
+        self.default_limit.check_key(&key.to_string()).is_err()        
+    }
+    
     pub fn host_limit_is_ok(&self, key: &str) -> bool {
         let host = get_host(key).expect("Invalid Hostname format");
         let host = self.hosts.get(&host).expect("Host actually to exist");

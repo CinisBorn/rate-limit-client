@@ -22,19 +22,19 @@ fn shoud_respect_limit_in_request() {
     let interval = http_client::TimeInterval::ByHours;
     let client = RateLimitClient::build_with_clock(clock.clone(), quota, interval);
 
-    let url = format!("https://supercalm.com");
+    let key = format!("https://supercalm.com");
 
-    assert!(client.get_default_limit().check_key(&url).is_ok());
-    assert!(client.get_default_limit().check_key(&url).is_err());
+    assert!(client.global_limit_is_ok(&key));
+    assert!(client.global_limit_is_err(&key));
 
     clock.advance(Duration::from_secs(1));
 
-    assert!(client.get_default_limit().check_key(&url).is_err());
+    assert!(client.global_limit_is_err(&key));
 
     clock.advance(Duration::from_hours(1));
 
-    assert!(client.get_default_limit().check_key(&url).is_ok());
-    assert!(client.get_default_limit().check_key(&url).is_err());
+    assert!(client.global_limit_is_ok(&key));
+    assert!(client.global_limit_is_err(&key));
 }
 
 #[test]
