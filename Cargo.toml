@@ -8,6 +8,7 @@ tokio = { version = "1.49.0", features = ["full"] }
 reqwest = { version = "0.13", features = ["json"] }
 governor = "0.10.4"
 url = "2.5.8"
+dashmap = "6.1.0"
 
 [dev-dependencies]
 wiremock = "0.6.5"

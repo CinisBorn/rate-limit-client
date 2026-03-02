@@ -42,8 +42,11 @@ fn should_respect_limit_by_host() {
     let clock = FakeRelativeClock::default();
     let quota = NonZeroU32::new(1).unwrap();
 
-    let host1 = "http://veryhappywithit.com";
-    let host2 = "http://coolhost.com";
+    let host1 = "veryhappywithit.com";
+    let host2 = "coolhost.com";
+    
+    let endpoint1 = "http://veryhappywithit.com";
+    let endpoint2 = "http://coolhost.com";
 
     let host1_quota = NonZeroU32::new(10).unwrap();
     let host2_quota = NonZeroU32::new(5).unwrap();
@@ -57,23 +60,23 @@ fn should_respect_limit_by_host() {
     client.build_host(host1, host1_quota, host1_interval);
     client.build_host(host2, host2_quota, host2_interval);
 
-    assert!(client.get_host_limit(host1).unwrap().check().is_ok());
-    assert!(client.get_host_limit(host1).unwrap().check().is_err());
+    assert!(client.host_limit_is_ok(endpoint1));
+    assert!(client.host_limit_is_err(endpoint1));
 
     clock.advance(Duration::from_hours(1));
 
-    assert!(client.get_host_limit(host1).unwrap().check().is_ok());
-    assert!(client.get_host_limit(host1).unwrap().check().is_err());
+    assert!(client.host_limit_is_ok(endpoint1));
+    assert!(client.host_limit_is_err(endpoint1));
 
     clock.advance(Duration::from_secs(1));
 
-    assert!(client.get_host_limit(host1).unwrap().check().is_err());
+    assert!(client.host_limit_is_err(endpoint1));
 
-    assert!(client.get_host_limit(host2).unwrap().check().is_ok());
-    assert!(client.get_host_limit(host2).unwrap().check().is_err());
+    assert!(client.host_limit_is_ok(endpoint2));
+    assert!(client.host_limit_is_err(endpoint2));
 
     clock.advance(Duration::from_mins(5));
 
-    assert!(client.get_host_limit(host2).unwrap().check().is_ok());
-    assert!(client.get_host_limit(host2).unwrap().check().is_err());
+    assert!(client.host_limit_is_ok(endpoint2));
+    assert!(client.host_limit_is_err(endpoint2));
 }

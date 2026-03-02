@@ -490,6 +490,7 @@ dependencies = [
 name = "http_client"
 version = "0.1.0"
 dependencies = [
+ "dashmap",
  "governor",
  "reqwest",
  "tokio",

@@ -3,14 +3,12 @@ use governor::middleware::NoOpMiddleware;
 use governor::state::keyed::DashMapStateStore;
 use governor::state::{InMemoryState, NotKeyed};
 use governor::{Quota, RateLimiter};
-
+use dashmap::DashMap;
 use reqwest::Client;
-use std::{collections::HashMap, num::NonZeroU32};
-
+use std::num::NonZeroU32;
 use helpers::build_quota;
-pub use models::{TimeInterval, UrlError};
-
 use crate::helpers::get_host;
+pub use models::{TimeInterval, UrlError};
 
 mod helpers;
 mod models;
@@ -22,7 +20,7 @@ type KeyedLimiter<C> = RateLimiter<String, DashMapStateStore<String>, C, Middlew
 pub struct RateLimitClient<C: Clock + Clone = DefaultClock> {
     client: Client,
     clock: C, // stored so add_host can clone it
-    hosts: HashMap<String, Host<C>>,
+    hosts: DashMap<String, Host<C>>,
     default_limit: KeyedLimiter<C>,
 }
 
@@ -40,7 +38,7 @@ impl RateLimitClient<DefaultClock> {
             client: Client::new(),
             default_limit: limit,
             clock: DefaultClock::default(),
-            hosts: HashMap::new(),
+            hosts: DashMap::new(),
         }
     }
 
@@ -71,7 +69,7 @@ where
         Self {
             client: Client::new(),
             clock,
-            hosts: HashMap::new(),
+            hosts: DashMap::new(),
             default_limit: limit,
         }
     }
@@ -80,17 +78,18 @@ where
         &self.default_limit
     }
 
-    pub fn get_host_limit(&self, key: &str) -> Result<&DirectLimiter<C>, ()> {
-        let host = if let Ok(host) = get_host(key) {
-            host
-        } else {
-            return Err(());
-        };
-
-        match self.hosts.get(&host) {
-            Some(k) => Ok(&k.limit),
-            None => Err(()),
-        }
+    pub fn host_limit_is_ok(&self, key: &str) -> bool {
+        let host = get_host(key).expect("Invalid Hostname format");
+        let host = self.hosts.get(&host).expect("Host actually to exist");
+        
+        host.limit.check().is_ok()
+    }
+    
+    pub fn host_limit_is_err(&self, key: &str) -> bool {
+        let host = get_host(key).expect("Invalid Hostname format");
+        let host = self.hosts.get(&host).expect("Host actually to exist");
+        
+        host.limit.check().is_err()
     }
 
     pub fn build_host(&mut self, host: &str, quota: NonZeroU32, interval: TimeInterval) {
