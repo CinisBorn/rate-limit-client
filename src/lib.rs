@@ -5,6 +5,7 @@ use governor::state::{InMemoryState, NotKeyed};
 use governor::{Quota, RateLimiter};
 use dashmap::DashMap;
 use reqwest::Client;
+use tracing::{instrument, info};
 use std::num::NonZeroU32;
 use helpers::build_quota;
 use crate::helpers::get_host;
@@ -27,6 +28,7 @@ type KeyedLimiter<C> = RateLimiter<String, DashMapStateStore<String>, C, Middlew
 // possible for coeherence.
 // 
 // It probably will cost a lot of time and handche. 
+#[derive(Debug)]
 pub struct RateLimitClient<C: Clock + Clone = DefaultClock> {
     client: Client,
     clock: C,
@@ -34,6 +36,7 @@ pub struct RateLimitClient<C: Clock + Clone = DefaultClock> {
     default_limit: KeyedLimiter<C>,
 }
 
+#[derive(Debug)]
 struct Host<C: Clock + Clone> {
     limit: DirectLimiter<C>,
 }
@@ -52,12 +55,14 @@ impl RateLimitClient<DefaultClock> {
         }
     }
 
+    #[instrument(skip(self))]
     pub async fn get(&self, url: &str) -> Result<reqwest::Response, reqwest::Error> {
         match self.hosts.get(&url.to_string()) {
             Some(host) => host.limit.until_ready().await,
             None => self.default_limit.until_key_ready(&GLOBAL_KEY.to_string()).await,
         }
-
+        
+        info!("request started");
         self.client.get(url).send().await
     }
 }
