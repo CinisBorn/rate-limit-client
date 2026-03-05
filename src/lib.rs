@@ -35,8 +35,14 @@ pub struct RateLimitClient<C: Clock + Clone = DefaultClock> {
 }
 
 #[derive(Debug)]
-struct Host<C: Clock + Clone> {
+struct HostConfig<C: Clock + Clone = DefaultClock> {
     limit: DirectLimiter<C>,
+    burst: NonZeroU32 
+}
+
+#[derive(Debug)]
+struct Host<C: Clock + Clone> {
+    config: HostConfig<C>,
 }
 
 impl RateLimitClient<DefaultClock> {
@@ -56,7 +62,7 @@ impl RateLimitClient<DefaultClock> {
     #[instrument(skip(self))]
     pub async fn get(&self, url: &str) -> Result<reqwest::Response, reqwest::Error> {
         match self.hosts.get(&url.to_string()) {
-            Some(host) => host.limit.until_ready().await,
+            Some(host) => host.config.limit.until_ready().await,
             None => self.default_limit.until_key_ready(&"global".to_string()).await,
         }
         
@@ -97,20 +103,22 @@ where
         let host = get_host(key).expect("Invalid Hostname format");
         let host = self.hosts.get(&host).expect("Host actually to exist");
         
-        host.limit.check().is_ok()
+        host.config.limit.check().is_ok()
     }
     
     pub fn host_limit_is_err(&self, key: &str) -> bool {
         let host = get_host(key).expect("Invalid Hostname format");
         let host = self.hosts.get(&host).expect("Host actually to exist");
         
-        host.limit.check().is_err()
+        host.config.limit.check().is_err()
     }
 
     pub fn build_host(&mut self, host: &str, quota: NonZeroU32, interval: TimeInterval) {
         let quota = build_quota(quota, interval);
         let limit = RateLimiter::direct_with_clock(quota, self.clock.clone());
-        let host_config = Host { limit };
+        let burst = NonZeroU32::new(1).expect("A Non Zero Number");
+        let config = HostConfig { burst, limit };
+        let host_config = Host { config };
 
         self.hosts.insert(host.to_string(), host_config);
     }
