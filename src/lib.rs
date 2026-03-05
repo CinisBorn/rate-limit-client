@@ -52,7 +52,7 @@ impl RateLimitClient<DefaultClock> {
             hosts: DashMap::new(),
         }
     }
-
+    
     #[instrument(skip(self))]
     pub async fn get(&self, url: &str) -> Result<reqwest::Response, reqwest::Error> {
         match self.hosts.get(&url.to_string()) {
