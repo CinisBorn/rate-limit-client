@@ -15,7 +15,7 @@ async fn response_with_ok() {
         .mount(&server)
         .await;
 
-    let client = RateLimitClient::build_default();
+    let client = RateLimitClient::build();
     let url = format!("{}/hello", &server.uri());
 
     let response = client.get(&url).await.unwrap();

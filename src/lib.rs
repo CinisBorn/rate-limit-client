@@ -40,7 +40,7 @@ struct Host<C: Clock + Clone> {
 }
 
 impl RateLimitClient<DefaultClock> {
-    pub fn build_default() -> Self {
+    pub fn build() -> Self {
         let burst = NonZeroU32::new(10).expect("No Zero Burst");
         let quota = Quota::per_second(burst);
         let limit = RateLimiter::keyed(quota);

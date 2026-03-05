@@ -88,7 +88,7 @@ fn host_should_exists() {
     let host1 = "veryhappywithit.com";
     let host2 = "coolhost.com";
         
-    let mut client = RateLimitClient::build_default();
+    let mut client = RateLimitClient::build();
 
     client.build_host(host1, quota, TimeInterval::ByHours);
     client.build_host(host2, quota, TimeInterval::ByMinutes);
