@@ -81,6 +81,25 @@ fn should_respect_limit_by_host() {
 }
 
 #[test]
+fn should_use_correct_quota() {
+    let clock = FakeRelativeClock::default();
+    let time = TimeInterval::ByMinutes;
+    let quota = NonZeroU32::new(10).expect("to work");
+    let host = "httpbin.org";
+    let url = "https://httpbin.org/get";
+    let mut client = RateLimitClient::build_with_clock(quota, time, clock.clone());
+    
+    client.build_host(host, quota, TimeInterval::ByHours);
+    
+    assert!(client.host_limit_is_ok(url));
+    assert!(client.host_limit_is_err(url));
+    
+    clock.advance(Duration::from_mins(20));
+    
+    assert!(client.host_limit_is_ok(url));
+}
+
+#[test]
 fn host_should_exists() {
     let quota = NonZeroU32::new(1).unwrap();
 

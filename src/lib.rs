@@ -79,7 +79,11 @@ impl RateLimitClient<DefaultClock> {
     
     #[instrument(skip(self))]
     pub async fn get(&self, url: &str) -> Result<reqwest::Response, reqwest::Error> {
-        match self.hosts.get(&url.to_string()) {
+        let host = get_host(&url.to_string()).unwrap_or_else(|_| {
+            panic!("Invalid Host Format")
+        });
+        
+        match self.hosts.get(&host) {
             Some(host) => host.config.limit.until_ready().await,
             None => self.config.limit.until_key_ready(&"global".to_string()).await,
         }
