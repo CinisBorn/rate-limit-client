@@ -20,7 +20,7 @@ fn shoud_respect_limit_in_request() {
     let clock = FakeRelativeClock::default();
     let quota = NonZeroU32::new(1).unwrap();
     let interval = http_client::TimeInterval::ByHours;
-    let client = RateLimitClient::build_with_clock(clock.clone(), quota, interval);
+    let client = RateLimitClient::build_with_clock(quota, interval, clock.clone());
 
     let key = format!("https://supercalm.com");
 
@@ -55,7 +55,7 @@ fn should_respect_limit_by_host() {
     let host1_interval = http_client::TimeInterval::ByHours;
     let host2_interval = http_client::TimeInterval::ByMinutes;
 
-    let mut client = RateLimitClient::build_with_clock(clock.clone(), quota, global_interval);
+    let mut client = RateLimitClient::build_with_clock(quota, global_interval, clock.clone());
     
     client.build_host(host1, host1_quota, host1_interval);
     client.build_host(host2, host2_quota, host2_interval);
@@ -88,7 +88,7 @@ fn host_should_exists() {
     let host1 = "veryhappywithit.com";
     let host2 = "coolhost.com";
         
-    let mut client = RateLimitClient::build();
+    let mut client = RateLimitClient::build(quota, TimeInterval::ByHours);
 
     client.build_host(host1, quota, TimeInterval::ByHours);
     client.build_host(host2, quota, TimeInterval::ByMinutes);

@@ -2,7 +2,7 @@ use governor::clock::{Clock, DefaultClock, Reference};
 use governor::middleware::NoOpMiddleware;
 use governor::state::keyed::DashMapStateStore;
 use governor::state::{InMemoryState, NotKeyed};
-use governor::{Quota, RateLimiter};
+use governor::RateLimiter;
 use dashmap::DashMap;
 use reqwest::Client;
 use tracing::{instrument, info};
@@ -28,10 +28,44 @@ type KeyedLimiter<C> = RateLimiter<String, DashMapStateStore<String>, C, Middlew
 // It probably will cost a lot of time and handche. 
 #[derive(Debug)]
 pub struct RateLimitClient<C: Clock + Clone = DefaultClock> {
-    client: Client,
-    clock: C,
+    config: GlobalConfig<C>,
     hosts: DashMap<String, Host<C>>,
-    default_limit: KeyedLimiter<C>,
+}
+
+#[derive(Debug)]
+struct GlobalConfig<C: Clock + Clone> {
+    limit: KeyedLimiter<C>,
+    burst: NonZeroU32,
+    client: Client,
+    clock: C, 
+}
+
+impl GlobalConfig<DefaultClock> {
+    pub fn build(quota: NonZeroU32, time: TimeInterval) -> Self {
+        GlobalConfig::build_with_clock(quota, time, DefaultClock::default())
+    }
+}
+
+impl<C> GlobalConfig<C> 
+where
+    C: Clock + Clone,
+    C::Instant: Reference,
+{
+    pub fn build_with_clock(quota: NonZeroU32, time: TimeInterval, clock: C) -> Self {
+        let burst = NonZeroU32::new(1).expect("It works");
+        let limit = RateLimiter::new(
+            build_quota(quota, time),
+            DashMapStateStore::default(),
+            clock.clone(),
+        );
+        
+        Self {
+            burst,
+            limit,
+            client: Client::new(),
+            clock, 
+        }
+    }
 }
 
 #[derive(Debug)]
@@ -46,15 +80,11 @@ struct Host<C: Clock + Clone> {
 }
 
 impl RateLimitClient<DefaultClock> {
-    pub fn build() -> Self {
-        let burst = NonZeroU32::new(10).expect("No Zero Burst");
-        let quota = Quota::per_second(burst);
-        let limit = RateLimiter::keyed(quota);
+    pub fn build(quota: NonZeroU32, time: TimeInterval) -> Self {
+        let config = GlobalConfig::build(quota, time);
 
         Self {
-            client: Client::new(),
-            default_limit: limit,
-            clock: DefaultClock::default(),
+            config,
             hosts: DashMap::new(),
         }
     }
@@ -63,11 +93,11 @@ impl RateLimitClient<DefaultClock> {
     pub async fn get(&self, url: &str) -> Result<reqwest::Response, reqwest::Error> {
         match self.hosts.get(&url.to_string()) {
             Some(host) => host.config.limit.until_ready().await,
-            None => self.default_limit.until_key_ready(&"global".to_string()).await,
+            None => self.config.limit.until_key_ready(&"global".to_string()).await,
         }
         
         info!("request started");
-        self.client.get(url).send().await
+        self.config.client.get(url).send().await
     }
 }
 
@@ -76,27 +106,21 @@ where
     C: Clock + Clone,
     C::Instant: Reference,
 {
-    pub fn build_with_clock(clock: C, quota: NonZeroU32, interval: TimeInterval) -> Self {
-        let limit = RateLimiter::new(
-            build_quota(quota, interval),
-            DashMapStateStore::default(),
-            clock.clone(),
-        );
+    pub fn build_with_clock(quota: NonZeroU32, time: TimeInterval, clock: C) -> Self {
+        let config = GlobalConfig::build_with_clock(quota, time, clock);
 
         Self {
-            client: Client::new(),
-            clock,
+            config,
             hosts: DashMap::new(),
-            default_limit: limit,
         }
     }
 
     pub fn global_limit_is_ok(&self, key: &str) -> bool {
-        self.default_limit.check_key(&key.to_string()).is_ok()
+        self.config.limit.check_key(&key.to_string()).is_ok()
     }
 
     pub fn global_limit_is_err(&self, key: &str) -> bool {
-        self.default_limit.check_key(&key.to_string()).is_err()        
+        self.config.limit.check_key(&key.to_string()).is_err()        
     }
     
     pub fn host_limit_is_ok(&self, key: &str) -> bool {
@@ -115,7 +139,7 @@ where
 
     pub fn build_host(&mut self, host: &str, quota: NonZeroU32, interval: TimeInterval) {
         let quota = build_quota(quota, interval);
-        let limit = RateLimiter::direct_with_clock(quota, self.clock.clone());
+        let limit = RateLimiter::direct_with_clock(quota, self.config.clock.clone());
         let burst = NonZeroU32::new(1).expect("A Non Zero Number");
         let config = HostConfig { burst, limit };
         let host_config = Host { config };
