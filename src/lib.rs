@@ -35,7 +35,6 @@ pub struct RateLimitClient<C: Clock + Clone = DefaultClock> {
 #[derive(Debug)]
 struct GlobalConfig<C: Clock + Clone> {
     limit: KeyedLimiter<C>,
-    burst: NonZeroU32,
     client: Client,
     clock: C, 
 }
@@ -52,7 +51,6 @@ where
     C::Instant: Reference,
 {
     pub fn build_with_clock(quota: NonZeroU32, time: TimeInterval, clock: C) -> Self {
-        let burst = NonZeroU32::new(1).expect("It works");
         let limit = RateLimiter::new(
             build_quota(quota, time),
             DashMapStateStore::default(),
@@ -60,7 +58,6 @@ where
         );
         
         Self {
-            burst,
             limit,
             client: Client::new(),
             clock, 
@@ -71,7 +68,6 @@ where
 #[derive(Debug)]
 struct HostConfig<C: Clock + Clone = DefaultClock> {
     limit: DirectLimiter<C>,
-    burst: NonZeroU32 
 }
 
 #[derive(Debug)]
@@ -140,8 +136,7 @@ where
     pub fn build_host(&mut self, host: &str, quota: NonZeroU32, interval: TimeInterval) {
         let quota = build_quota(quota, interval);
         let limit = RateLimiter::direct_with_clock(quota, self.config.clock.clone());
-        let burst = NonZeroU32::new(1).expect("A Non Zero Number");
-        let config = HostConfig { burst, limit };
+        let config = HostConfig { limit };
         let host_config = Host { config };
 
         self.hosts.insert(host.to_string(), host_config);
@@ -150,4 +145,6 @@ where
     pub fn host_exists(&self, host: &str) -> bool {
         self.hosts.contains_key(host) 
     }
+    
+ 
 }

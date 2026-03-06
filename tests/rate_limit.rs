@@ -1,8 +1,7 @@
 use governor::clock::FakeRelativeClock;
 use governor::{Quota, RateLimiter};
-use std::num::NonZeroU32;
+use std::num:: NonZeroU32;
 use std::time::Duration;
-
 use http_client::{RateLimitClient, TimeInterval};
 
 #[test]
