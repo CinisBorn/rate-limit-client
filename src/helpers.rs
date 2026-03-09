@@ -19,7 +19,7 @@ pub fn get_host(url: &str) -> Result<String, UrlError> {
     match url {
         Ok(url) => {
             let host = url.host_str().map(|h| h.to_string());
-            host.ok_or_else(|| UrlError::InvalidHost)
+            host.ok_or(UrlError::InvalidHost)
         }
         Err(_) => Err(UrlError::InvalidUrlPath),
     }
