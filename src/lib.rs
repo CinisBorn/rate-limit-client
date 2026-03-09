@@ -77,7 +77,7 @@ impl RateLimitClient<DefaultClock> {
     #[instrument(skip(self))]
     pub async fn get(&self, url: &str) -> Result<reqwest::Response, reqwest::Error> {
         let host = get_host(url).unwrap_or_else(|_| {
-            panic!("Invalid Host Format")
+            panic!("Invalid Url Format: {}", url)
         });
         
         match self.hosts.get(&host) {
