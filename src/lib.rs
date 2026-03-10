@@ -138,6 +138,4 @@ where
     pub fn host_exists(&self, host: &str) -> bool {
         self.hosts.contains_key(host) 
     }
-    
- 
 }
