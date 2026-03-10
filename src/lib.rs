@@ -3,7 +3,6 @@ use governor::state::keyed::DashMapStateStore;
 use governor::RateLimiter;
 use dashmap::DashMap;
 use reqwest::Client;
-use tracing::{instrument, info};
 use std::num::NonZeroU32;
 use helpers::build_quota;
 use crate::helpers::get_host;
@@ -74,7 +73,6 @@ impl RateLimitClient<DefaultClock> {
         }
     }
     
-    #[instrument(skip(self))]
     pub async fn get(&self, url: &str) -> Result<reqwest::Response, reqwest::Error> {
         let host = get_host(url).unwrap_or_else(|_| {
             panic!("Invalid Url Format: {}", url)
@@ -85,7 +83,6 @@ impl RateLimitClient<DefaultClock> {
             None => self.config.limit.until_key_ready(&"global".to_string()).await,
         }
         
-        info!("request started");
         self.config.client.get(url).send().await
     }
 }

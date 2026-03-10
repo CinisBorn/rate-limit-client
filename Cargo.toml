@@ -9,7 +9,6 @@ reqwest = { version = "0.13", features = ["json"] }
 governor = "0.10.4"
 url = "2.5.8"
 dashmap = "6.1.0" 
-tracing = { version = "0.1.44", features = ["attributes"]}
 
 [dev-dependencies]
 wiremock = "0.6.5"
