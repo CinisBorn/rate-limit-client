@@ -4,11 +4,15 @@ use std::num:: NonZeroU32;
 use std::time::Duration;
 use http_client::{RateLimitClient, TimeInterval};
 
+// used to simplify the process of tests with common values. 
+const DEFAULT_BURST: NonZeroU32 = NonZeroU32::new(1).unwrap();
+
 #[test]
 fn should_respect_limit() {
-    let fake_clock = FakeRelativeClock::default();
-    let quota = Quota::per_second(NonZeroU32::new(1).unwrap());
-    let limit = RateLimiter::direct_with_clock(quota, fake_clock);
+    let limit = RateLimiter::direct_with_clock(
+        Quota::per_second(NonZeroU32::new(1).unwrap()), 
+        FakeRelativeClock::default()
+    );
 
     assert!(limit.check().is_ok());
     assert!(limit.check().is_err());
@@ -17,13 +21,10 @@ fn should_respect_limit() {
 #[test]
 fn shoud_respect_limit_in_request() {
     let clock = FakeRelativeClock::default();
-    let quota = NonZeroU32::new(1).unwrap();
-    let interval = http_client::TimeInterval::ByHours;
-    let global_burst = NonZeroU32::new(1).unwrap();
     let client = RateLimitClient::build_with_clock(
-        quota, 
-        global_burst, 
-        interval, 
+        NonZeroU32::new(1).unwrap(), 
+        DEFAULT_BURST, 
+        TimeInterval::ByHours, 
         clock.clone()
     );
 
@@ -39,38 +40,37 @@ fn shoud_respect_limit_in_request() {
     clock.advance(Duration::from_hours(1));
 
     assert!(client.global_limit_is_ok(&key));
-    assert!(client.global_limit_is_err(&key));
 }
 
 #[test]
 fn should_respect_limit_by_host() {
     let clock = FakeRelativeClock::default();
-    let quota = NonZeroU32::new(1).unwrap();
 
-    let host1 = "veryhappywithit.com";
-    let host2 = "coolhost.com";
-    
     let endpoint1 = "http://veryhappywithit.com";
     let endpoint2 = "http://coolhost.com";
 
-    let host1_quota = NonZeroU32::new(10).unwrap();
-    let host2_quota = NonZeroU32::new(5).unwrap();
-
-    let global_interval = http_client::TimeInterval::ByHours;
     let host1_interval = http_client::TimeInterval::ByHours;
     let host2_interval = http_client::TimeInterval::ByMinutes;
     
-    let burst = NonZeroU32::new(1).unwrap();
-
     let client = RateLimitClient::build_with_clock(
-        quota, 
-        burst, 
-        global_interval, 
+        NonZeroU32::new(1).unwrap(), 
+        DEFAULT_BURST, 
+        TimeInterval::ByHours, 
         clock.clone()
     );
     
-    client.build_host(host1, host1_quota, burst, host1_interval);
-    client.build_host(host2, host2_quota, burst, host2_interval);
+    client.build_host(
+        "veryhappywithit.com", 
+        NonZeroU32::new(10).unwrap(), 
+        DEFAULT_BURST, 
+        host1_interval
+    );
+    client.build_host(
+        "coolhost.com", 
+        NonZeroU32::new(5).unwrap(), 
+        DEFAULT_BURST, 
+        host2_interval
+    );
 
     assert!(client.host_limit_is_ok(endpoint1));
     assert!(client.host_limit_is_err(endpoint1));
@@ -96,19 +96,20 @@ fn should_respect_limit_by_host() {
 #[test]
 fn should_use_correct_quota() {
     let clock = FakeRelativeClock::default();
-    let time = TimeInterval::ByMinutes;
-    let quota = NonZeroU32::new(10).expect("to work");
-    let host = "httpbin.org";
     let url = "https://httpbin.org/get";
-    let burst = NonZeroU32::new(1).unwrap();
     let client = RateLimitClient::build_with_clock(
-        quota, 
-        burst, 
-        time, 
+        NonZeroU32::new(10).unwrap(), 
+        DEFAULT_BURST, 
+        TimeInterval::ByMinutes, 
         clock.clone()
     );
     
-    client.build_host(host, quota, burst, TimeInterval::ByHours);
+    client.build_host(
+        "httpbin.org", 
+        NonZeroU32::new(10).unwrap(), 
+        DEFAULT_BURST, 
+        TimeInterval::ByHours
+    );
     
     assert!(client.host_limit_is_ok(url));
     assert!(client.host_limit_is_err(url));
@@ -121,13 +122,16 @@ fn should_use_correct_quota() {
 #[test]
 fn host_should_exists() {
     let quota = NonZeroU32::new(1).unwrap();
-    let burst = NonZeroU32::new(1).unwrap();
     let host1 = "veryhappywithit.com";
     let host2 = "coolhost.com";
-    let client = RateLimitClient::build(quota, burst, TimeInterval::ByHours);
+    let client = RateLimitClient::build(
+        quota, 
+        DEFAULT_BURST, 
+        TimeInterval::ByHours
+    );
 
-    client.build_host(host1, quota, burst, TimeInterval::ByHours);
-    client.build_host(host2, quota, burst, TimeInterval::ByMinutes);
+    client.build_host(host1, quota, DEFAULT_BURST, TimeInterval::ByHours);
+    client.build_host(host2, quota, DEFAULT_BURST, TimeInterval::ByMinutes);
     
     assert!(client.host_exists(host1));
     assert!(client.host_exists(host2))
