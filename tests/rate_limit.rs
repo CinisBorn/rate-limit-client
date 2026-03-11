@@ -73,24 +73,24 @@ fn should_respect_limit_by_host() {
     );
 
     assert!(client.host_limit_is_ok(endpoint1));
-    assert!(client.host_limit_is_err(endpoint1));
+    assert!(!client.host_limit_is_ok(endpoint1));
 
     clock.advance(Duration::from_hours(1));
 
     assert!(client.host_limit_is_ok(endpoint1));
-    assert!(client.host_limit_is_err(endpoint1));
+    assert!(!client.host_limit_is_ok(endpoint1));
 
     clock.advance(Duration::from_secs(1));
 
-    assert!(client.host_limit_is_err(endpoint1));
+    assert!(!client.host_limit_is_ok(endpoint1));
 
     assert!(client.host_limit_is_ok(endpoint2));
-    assert!(client.host_limit_is_err(endpoint2));
+    assert!(!client.host_limit_is_ok(endpoint2));
 
     clock.advance(Duration::from_mins(5));
 
     assert!(client.host_limit_is_ok(endpoint2));
-    assert!(client.host_limit_is_err(endpoint2));
+    assert!(!client.host_limit_is_ok(endpoint2));
 }
 
 #[test]
@@ -112,7 +112,7 @@ fn should_use_correct_quota() {
     );
     
     assert!(client.host_limit_is_ok(url));
-    assert!(client.host_limit_is_err(url));
+    assert!(!client.host_limit_is_ok(url));
     
     clock.advance(Duration::from_mins(20));
     

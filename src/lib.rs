@@ -120,14 +120,7 @@ where
         
         host.config.limit.check().is_ok()
     }
-    
-    pub fn host_limit_is_err(&self, key: &str) -> bool {
-        let host = get_host(key).expect("Invalid Hostname format");
-        let host = self.hosts.get(&host).expect("Host actually to exist");
-        
-        host.config.limit.check().is_err()
-    }
-
+     
     pub fn build_host(
         &self, 
         host: &str, 
