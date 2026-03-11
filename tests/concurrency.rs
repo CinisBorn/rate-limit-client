@@ -13,9 +13,10 @@ async fn should_get_200() {
         .mount(&mock)
         .await;
     
+    let global_burst = NonZeroU32::new(10).unwrap();
     let quota  = NonZeroU32::new(10).unwrap();
     let time   = TimeInterval::ByMinutes;
-    let client = RateLimitClient::build(quota, time);
+    let client = RateLimitClient::build(quota, global_burst, time);
     let response = client
         .get(&format!("{}/test", mock.uri()))
         .await

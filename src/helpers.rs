@@ -3,9 +3,7 @@ use governor::Quota;
 use std::num::NonZeroU32;
 use url::Url;
 
-pub fn build_quota(quota: NonZeroU32, interval: TimeInterval) -> Quota {
-    let burst = NonZeroU32::new(1).expect("Be the number 1");
-
+pub fn build_quota(quota: NonZeroU32, burst: NonZeroU32, interval: TimeInterval) -> Quota {
     match interval {
         TimeInterval::ByHours => Quota::per_hour(quota).allow_burst(burst),
         TimeInterval::ByMinutes => Quota::per_minute(quota).allow_burst(burst),

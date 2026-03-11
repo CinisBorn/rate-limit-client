@@ -28,8 +28,8 @@ struct GlobalConfig<C: Clock + Clone> {
 }
 
 impl GlobalConfig<DefaultClock> {
-    pub fn build(quota: NonZeroU32, time: TimeInterval) -> Self {
-        GlobalConfig::build_with_clock(quota, time, DefaultClock::default())
+    pub fn build(quota: NonZeroU32, burst: NonZeroU32, time: TimeInterval) -> Self {
+        GlobalConfig::build_with_clock(quota, burst, time, DefaultClock::default())
     }
 }
 
@@ -38,9 +38,14 @@ where
     C: Clock + Clone,
     C::Instant: Reference,
 {
-    pub fn build_with_clock(quota: NonZeroU32, time: TimeInterval, clock: C) -> Self {
+    pub fn build_with_clock(
+        quota: NonZeroU32,
+        burst: NonZeroU32,
+        time: TimeInterval, 
+        clock: C
+    ) -> Self {
         let limit = RateLimiter::new(
-            build_quota(quota, time),
+            build_quota(quota, burst, time),
             DashMapStateStore::default(),
             clock.clone(),
         );
@@ -64,8 +69,8 @@ struct Host<C: Clock + Clone> {
 }
 
 impl RateLimitClient<DefaultClock> {
-    pub fn build(quota: NonZeroU32, time: TimeInterval) -> Self {
-        let config = GlobalConfig::build(quota, time);
+    pub fn build(quota: NonZeroU32, burst: NonZeroU32, time: TimeInterval) -> Self {
+        let config = GlobalConfig::build(quota, burst, time);
 
         Self {
             config,
@@ -92,8 +97,8 @@ where
     C: Clock + Clone,
     C::Instant: Reference,
 {
-    pub fn build_with_clock(quota: NonZeroU32, time: TimeInterval, clock: C) -> Self {
-        let config = GlobalConfig::build_with_clock(quota, time, clock);
+    pub fn build_with_clock(quota: NonZeroU32, burst: NonZeroU32, time: TimeInterval, clock: C) -> Self {
+        let config = GlobalConfig::build_with_clock(quota, burst, time, clock);
 
         Self {
             config,
@@ -123,8 +128,14 @@ where
         host.config.limit.check().is_err()
     }
 
-    pub fn build_host(&self, host: &str, quota: NonZeroU32, interval: TimeInterval) {
-        let quota = build_quota(quota, interval);
+    pub fn build_host(
+        &self, 
+        host: &str, 
+        quota: NonZeroU32, 
+        burst: NonZeroU32,
+        interval: TimeInterval
+    ) {
+        let quota = build_quota(quota, burst, interval);
         let limit = RateLimiter::direct_with_clock(quota, self.config.clock.clone());
         let config = HostConfig { limit };
         let host_config = Host { config };

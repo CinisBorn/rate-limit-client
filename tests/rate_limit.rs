@@ -19,7 +19,13 @@ fn shoud_respect_limit_in_request() {
     let clock = FakeRelativeClock::default();
     let quota = NonZeroU32::new(1).unwrap();
     let interval = http_client::TimeInterval::ByHours;
-    let client = RateLimitClient::build_with_clock(quota, interval, clock.clone());
+    let global_burst = NonZeroU32::new(1).unwrap();
+    let client = RateLimitClient::build_with_clock(
+        quota, 
+        global_burst, 
+        interval, 
+        clock.clone()
+    );
 
     let key = format!("https://supercalm.com");
 
@@ -53,11 +59,18 @@ fn should_respect_limit_by_host() {
     let global_interval = http_client::TimeInterval::ByHours;
     let host1_interval = http_client::TimeInterval::ByHours;
     let host2_interval = http_client::TimeInterval::ByMinutes;
-
-    let client = RateLimitClient::build_with_clock(quota, global_interval, clock.clone());
     
-    client.build_host(host1, host1_quota, host1_interval);
-    client.build_host(host2, host2_quota, host2_interval);
+    let burst = NonZeroU32::new(1).unwrap();
+
+    let client = RateLimitClient::build_with_clock(
+        quota, 
+        burst, 
+        global_interval, 
+        clock.clone()
+    );
+    
+    client.build_host(host1, host1_quota, burst, host1_interval);
+    client.build_host(host2, host2_quota, burst, host2_interval);
 
     assert!(client.host_limit_is_ok(endpoint1));
     assert!(client.host_limit_is_err(endpoint1));
@@ -87,9 +100,15 @@ fn should_use_correct_quota() {
     let quota = NonZeroU32::new(10).expect("to work");
     let host = "httpbin.org";
     let url = "https://httpbin.org/get";
-    let client = RateLimitClient::build_with_clock(quota, time, clock.clone());
+    let burst = NonZeroU32::new(1).unwrap();
+    let client = RateLimitClient::build_with_clock(
+        quota, 
+        burst, 
+        time, 
+        clock.clone()
+    );
     
-    client.build_host(host, quota, TimeInterval::ByHours);
+    client.build_host(host, quota, burst, TimeInterval::ByHours);
     
     assert!(client.host_limit_is_ok(url));
     assert!(client.host_limit_is_err(url));
@@ -102,13 +121,13 @@ fn should_use_correct_quota() {
 #[test]
 fn host_should_exists() {
     let quota = NonZeroU32::new(1).unwrap();
-
+    let burst = NonZeroU32::new(1).unwrap();
     let host1 = "veryhappywithit.com";
     let host2 = "coolhost.com";
-    let client = RateLimitClient::build(quota, TimeInterval::ByHours);
+    let client = RateLimitClient::build(quota, burst, TimeInterval::ByHours);
 
-    client.build_host(host1, quota, TimeInterval::ByHours);
-    client.build_host(host2, quota, TimeInterval::ByMinutes);
+    client.build_host(host1, quota, burst, TimeInterval::ByHours);
+    client.build_host(host2, quota, burst, TimeInterval::ByMinutes);
     
     assert!(client.host_exists(host1));
     assert!(client.host_exists(host2))
