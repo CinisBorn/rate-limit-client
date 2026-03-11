@@ -123,7 +123,7 @@ where
         host.config.limit.check().is_err()
     }
 
-    pub fn build_host(&mut self, host: &str, quota: NonZeroU32, interval: TimeInterval) {
+    pub fn build_host(&self, host: &str, quota: NonZeroU32, interval: TimeInterval) {
         let quota = build_quota(quota, interval);
         let limit = RateLimiter::direct_with_clock(quota, self.config.clock.clone());
         let config = HostConfig { limit };
