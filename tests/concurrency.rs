@@ -2,6 +2,7 @@ use std::num::NonZeroU32;
 use http_client::{RateLimitClient, TimeInterval};
 use wiremock::{Mock, MockServer, ResponseTemplate};
 use wiremock::matchers::{path, method};
+use http_client::configs::Config;
 
 #[tokio::test]
 async fn should_get_200() {
@@ -13,10 +14,13 @@ async fn should_get_200() {
         .mount(&mock)
         .await;
     
-    let global_burst = NonZeroU32::new(10).unwrap();
-    let quota  = NonZeroU32::new(10).unwrap();
-    let time   = TimeInterval::ByMinutes;
-    let client = RateLimitClient::build(quota, global_burst, time);
+    let config = Config {
+        quota: NonZeroU32::new(10).unwrap(), 
+        burst: NonZeroU32::new(10).unwrap(), 
+        interval: TimeInterval::ByHours
+    };
+    
+    let client = RateLimitClient::build(config);
     let response = client
         .get(&format!("{}/test", mock.uri()))
         .await

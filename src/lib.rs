@@ -1,22 +1,24 @@
+use crate::configs::{ConfigWithClock, HostConfig};
+use crate::helpers::get_host;
+use configs::Config;
+use dashmap::DashMap;
+use governor::RateLimiter;
 use governor::clock::{Clock, DefaultClock, Reference};
 use governor::state::keyed::DashMapStateStore;
-use governor::RateLimiter;
-use dashmap::DashMap;
-use reqwest::Client;
-use std::num::NonZeroU32;
 use helpers::build_quota;
-use crate::helpers::get_host;
 pub use models::{TimeInterval, UrlError};
+use reqwest::Client;
 
 use types::{DirectLimiter, KeyedLimiter};
 
+pub mod configs;
 mod helpers;
 mod models;
 pub mod types;
- 
-/// `RateLimitClient` is the main type of the library. It contains a global config and a record 
-/// of all registered hosts. 
-/// 
+
+/// `RateLimitClient` is the main type of the library. It contains a global config and a record
+/// of all registered hosts.
+///
 /// See `build` method for more details.
 #[derive(Debug)]
 pub struct RateLimitClient<C: Clock + Clone = DefaultClock> {
@@ -28,104 +30,107 @@ pub struct RateLimitClient<C: Clock + Clone = DefaultClock> {
 struct GlobalConfig<C: Clock + Clone> {
     limit: KeyedLimiter<C>,
     client: Client,
-    clock: C, 
+    clock: C,
 }
 
 impl GlobalConfig<DefaultClock> {
-    pub fn build(quota: NonZeroU32, burst: NonZeroU32, time: TimeInterval) -> Self {
-        GlobalConfig::build_with_clock(quota, burst, time, DefaultClock::default())
+    pub fn build(config: Config) -> Self {
+        let internal_config = ConfigWithClock {
+            base: config,
+            clock: DefaultClock::default(),
+        };
+
+        GlobalConfig::build_with_clock(internal_config)
     }
 }
 
-impl<C> GlobalConfig<C> 
+impl<C> GlobalConfig<C>
 where
     C: Clock + Clone,
     C::Instant: Reference,
 {
-    pub fn build_with_clock(
-        quota: NonZeroU32,
-        burst: NonZeroU32,
-        time: TimeInterval, 
-        clock: C
-    ) -> Self {
+    pub fn build_with_clock(config: ConfigWithClock<C>) -> Self {
         let limit = RateLimiter::new(
-            build_quota(quota, burst, time),
+            build_quota(config.quota, config.burst, config.interval),
             DashMapStateStore::default(),
-            clock.clone(),
+            config.clock.clone(),
         );
-        
+
         Self {
             limit,
             client: Client::new(),
-            clock, 
+            clock: config.clock,
         }
     }
 }
 
 #[derive(Debug)]
-struct HostConfig<C: Clock + Clone = DefaultClock> {
-    limit: DirectLimiter<C>,
-}
-
-#[derive(Debug)]
 struct Host<C: Clock + Clone> {
-    config: HostConfig<C>,
+    quota: DirectLimiter<C>,
 }
 
 impl RateLimitClient<DefaultClock> {
     /// Builds a client with the specified `quota`, `burst`, and `time`. It is the most common way to
-    /// create a client. 
-    /// 
-    /// `quota` is a `NonZeroU32` type used to determine the interval of "ticket" recovery. 
-    /// Suppose you build a client with a quota of `10`, a burst of `1`, a `time` of 
-    /// `ByMinutes`, which means that you can make one request every 6 minutes. 
-    /// 
-    /// The `burst` determines how many tickets that can stack. If you 
+    /// create a client.
+    ///
+    /// `quota` is a `NonZeroU32` type used to determine the interval of "ticket" recovery.
+    /// Suppose you build a client with a quota of `10`, a burst of `1`, a `time` of
+    /// `ByMinutes`, which means that you can make one request every 6 minutes.
+    ///
+    /// The `burst` determines how many tickets that can stack. If you
     /// set `burst` to `2`, up to two request can be made immediatelly.
 
     /// After a specific time interval is finished, you can perform another `1` operation.
-    /// 
-    /// Let's consider the example from the `quota` section description where 
-    /// our client recovers one ticket every 6 minutes. With a burst of `2`, 
-    /// it will request two at 
+    ///
+    /// Let's consider the example from the `quota` section description where
+    /// our client recovers one ticket every 6 minutes. With a burst of `2`,
+    /// it will request two at
     /// same time, then each 6 minutes, you can perform other request. If the client is idle by at
-    /// least 12 minutes, when you do a request, it will be two at same time again. 
-    /// 
-    /// `time` is the interval meansurement used along of `quota` for determine the interval. It's 
-    /// something like `quota`/`time`, but it's more complex than it, of course. 
-    /// 
-    /// For more information see [Generic Cell Rate Algorithm](https://en.wikipedia.org/wiki/Generic_cell_rate_algorithm) 
-    /// 
+    /// least 12 minutes, when you do a request, it will be two at same time again.
+    ///
+    /// `time` is the interval meansurement used along of `quota` for determine the interval. It's
+    /// something like `quota`/`time`, but it's more complex than it, of course.
+    ///
+    /// For more information see [Generic Cell Rate Algorithm](https://en.wikipedia.org/wiki/Generic_cell_rate_algorithm)
+    ///
     /// Example of how to use:
     /// ```rust
+    /// use std::num::NonZeroU32;
+    /// use http_client::{RateLimitClient, TimeInterval};
+    /// use http_client::configs::Config;
+    ///
     /// fn main() {
-    ///     let client = RateLimitClient::build(
-    ///         NonZeroU32::new(2).unwrap() // quota,
-    ///         NonZeroU32::new(1).unwrap() // burst,
-    ///         TimeInterval::ByHours    
-    ///     )
+    ///     let config = Config {
+    ///        quota: NonZeroU32::new(2).unwrap(),
+    ///        burst: NonZeroU32::new(1).unwrap(),
+    ///        interval: TimeInterval::ByHours,
+    ///     };
+    ///     let client = RateLimitClient::build(config);
     /// }
     /// ```
-    pub fn build(quota: NonZeroU32, burst: NonZeroU32, time: TimeInterval) -> Self {
-        let config = GlobalConfig::build(quota, burst, time);
+    pub fn build(config: Config) -> Self {
+        let config = GlobalConfig::build(config);
 
         Self {
             config,
             hosts: DashMap::new(),
         }
     }
-    
-    /// Perform a get request. If `url` is a invalid *url* format, it will panic. 
+
+    /// Perform a get request. If `url` is a invalid *url* format, it will panic.
     pub async fn get(&self, url: &str) -> Result<reqwest::Response, reqwest::Error> {
-        let host = get_host(url).unwrap_or_else(|_| {
-            panic!("Invalid Url Format: {}", url)
-        });
-        
+        let host = get_host(url).unwrap_or_else(|_| panic!("Invalid Url Format: {}", url));
+
         match self.hosts.get(&host) {
-            Some(host) => host.config.limit.until_ready().await,
-            None => self.config.limit.until_key_ready(&"global".to_string()).await,
+            Some(host) => host.quota.until_ready().await,
+            None => {
+                self.config
+                    .limit
+                    .until_key_ready(&"global".to_string())
+                    .await
+            }
         }
-        
+
         self.config.client.get(url).send().await
     }
 }
@@ -137,8 +142,8 @@ where
 {
     /// Builds a client with a clock. It's common in testing scenarios. It's strongly recommended
     /// to build a client using `build`.
-    pub fn build_with_clock(quota: NonZeroU32, burst: NonZeroU32, time: TimeInterval, clock: C) -> Self {
-        let config = GlobalConfig::build_with_clock(quota, burst, time, clock);
+    pub fn build_with_clock(config: ConfigWithClock<C>) -> Self {
+        let config = GlobalConfig::build_with_clock(config);
 
         Self {
             config,
@@ -147,63 +152,69 @@ where
     }
 
     /// Check if there are some available "ticket" for usage in global hosts.
-    /// 
-    /// > This method will be removed in the future. 
+    ///
+    /// > This method will be removed in the future.
     pub fn global_limit_is_ok(&self, key: &str) -> bool {
         self.config.limit.check_key(&key.to_string()).is_ok()
     }
-    
+
     /// Check if there are not some available "ticket" for usage in global hosts.
-    /// 
-    /// > This method will be removed in the future. 
+    ///
+    /// > This method will be removed in the future.
     pub fn global_limit_is_err(&self, key: &str) -> bool {
-        self.config.limit.check_key(&key.to_string()).is_err()        
+        self.config.limit.check_key(&key.to_string()).is_err()
     }
-    
-    /// Check if there are some ticket in a specific host. 
+
+    /// Check if there are some ticket in a specific host.
     pub fn host_limit_is_ok(&self, key: &str) -> bool {
         let host = get_host(key).expect("Invalid Hostname format");
         let host = self.hosts.get(&host).expect("Host actually to exist");
-        
-        host.config.limit.check().is_ok()
+
+        host.quota.check().is_ok()
     }
-     
+
     /// Builds a host with a separated quota. You must pass a valid hostname, not a *url*.
     /// Example of usage:
-    /// 
+    ///
     /// ```rust
-    /// fn main() {
-    ///     let client = RateLimitClient::build(
-    ///         NonZeroU32::new(10).unwrap(),
-    ///         NonZeroU32::new(1).unwrap(),
-    ///         TimeInterval::ByHours    
-    ///     )
+    /// use std::num::NonZeroU32;
+    /// use http_client::{
+    ///     RateLimitClient, 
+    ///     TimeInterval,
+    ///     configs::{Config, HostConfig},
+    /// };
     /// 
-    ///     client.build_host( 
-    ///         "google.com",
-    ///         NonZeroU32::new(20).unwrap(),
-    ///         NonZerou32::new(2).unwrap(),
-    ///         TimeInterval::ByMinutes
-    ///     )
+    /// fn main() {
+    ///     
+    ///     let client = RateLimitClient::build(Config {
+    ///        quota: NonZeroU32::new(2).unwrap(),
+    ///        burst: NonZeroU32::new(1).unwrap(),
+    ///        interval: TimeInterval::ByHours,
+    ///     });
+    ///
+    ///     client.build_host(HostConfig { 
+    ///             base: Config {
+    ///                 quota: NonZeroU32::new(20).unwrap(),
+    ///                 burst: NonZeroU32::new(2).unwrap(),
+    ///                 interval: TimeInterval::ByHours, 
+    ///             },
+    ///             hostname: "google.com", 
+    ///      });
     /// }
     /// ```
     pub fn build_host(
-        &self, 
-        host: &str, 
-        quota: NonZeroU32, 
-        burst: NonZeroU32,
-        interval: TimeInterval
+        &self,
+        config: HostConfig
     ) {
-        let quota = build_quota(quota, burst, interval);
+        let quota = build_quota(config.quota, config.burst, config.interval);
         let limit = RateLimiter::direct_with_clock(quota, self.config.clock.clone());
-        let config = HostConfig { limit };
-        let host_config = Host { config };
+        let host_config = Host { quota: limit };
 
-        self.hosts.insert(host.to_string(), host_config);
+        self.hosts.insert(config.hostname.to_string(), host_config);
     }
-    
+
     /// Checks if a host exists
     pub fn host_exists(&self, host: &str) -> bool {
-        self.hosts.contains_key(host) 
+        self.hosts.contains_key(host)
     }
 }
