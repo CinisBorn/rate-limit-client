@@ -1,15 +1,12 @@
-use crate::configs::{ConfigWithClock, HostConfig};
+use crate::configs::{ConfigWithClock, HostConfig, GlobalConfig};
 use crate::helpers::get_host;
 use configs::Config;
 use dashmap::DashMap;
 use governor::RateLimiter;
 use governor::clock::{Clock, DefaultClock, Reference};
-use governor::state::keyed::DashMapStateStore;
 use helpers::build_quota;
 pub use models::{TimeInterval, UrlError};
-use reqwest::Client;
-
-use types::{DirectLimiter, KeyedLimiter};
+use types::DirectLimiter;
 
 pub mod configs;
 mod helpers;
@@ -26,43 +23,6 @@ pub struct RateLimitClient<C: Clock + Clone = DefaultClock> {
     hosts: DashMap<String, Host<C>>,
 }
 
-#[derive(Debug)]
-struct GlobalConfig<C: Clock + Clone> {
-    limit: KeyedLimiter<C>,
-    client: Client,
-    clock: C,
-}
-
-impl GlobalConfig<DefaultClock> {
-    pub fn build(config: Config) -> Self {
-        let internal_config = ConfigWithClock {
-            base: config,
-            clock: DefaultClock::default(),
-        };
-
-        GlobalConfig::build_with_clock(internal_config)
-    }
-}
-
-impl<C> GlobalConfig<C>
-where
-    C: Clock + Clone,
-    C::Instant: Reference,
-{
-    pub fn build_with_clock(config: ConfigWithClock<C>) -> Self {
-        let limit = RateLimiter::new(
-            build_quota(config.quota, config.burst, config.interval),
-            DashMapStateStore::default(),
-            config.clock.clone(),
-        );
-
-        Self {
-            limit,
-            client: Client::new(),
-            clock: config.clock,
-        }
-    }
-}
 
 #[derive(Debug)]
 struct Host<C: Clock + Clone> {

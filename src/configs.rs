@@ -1,6 +1,16 @@
 use std::{num::NonZeroU32, ops::Deref};
-use crate::{TimeInterval};
-use governor::clock::Clock;
+use reqwest::Client;
+use governor::{
+    self, 
+    RateLimiter, 
+    clock::{DefaultClock, Reference, Clock},
+    state::keyed::DashMapStateStore,
+};
+
+use crate::types::KeyedLimiter;
+use crate::TimeInterval;
+use crate::build_quota;
+
 
 /// A config `struct` for build clients and hosts.
 /// ```rust
@@ -92,5 +102,47 @@ impl<C: Clock + Clone> Deref for ConfigWithClock<C> {
     
     fn deref(&self) -> &Self::Target {
         &self.base
+    }
+}
+
+/// Creates a global config to every client. Hosts and non-specified clients share this 
+/// configuration. It's not recommended to change it if you **do not know** what you are doing. 
+/// 
+/// In this moment, there is no way to customize it, but in the future I plan add it. 
+#[derive(Debug)]
+pub struct GlobalConfig<C: Clock + Clone> {
+    pub limit: KeyedLimiter<C>,
+    pub client: Client,
+    pub clock: C,
+}
+
+impl GlobalConfig<DefaultClock> {
+    pub fn build(config: Config) -> Self {
+        let internal_config = ConfigWithClock {
+            base: config,
+            clock: DefaultClock::default(),
+        };
+
+        GlobalConfig::build_with_clock(internal_config)
+    }
+}
+
+impl<C> GlobalConfig<C>
+where
+    C: Clock + Clone,
+    C::Instant: Reference,
+{
+    pub fn build_with_clock(config: ConfigWithClock<C>) -> Self {
+        let limit = RateLimiter::new(
+            build_quota(config.quota, config.burst, config.interval),
+            DashMapStateStore::default(),
+            config.clock.clone(),
+        );
+
+        Self {
+            limit,
+            client: Client::new(),
+            clock: config.clock,
+        }
     }
 }
