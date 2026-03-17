@@ -1,23 +1,21 @@
-use std::{num::NonZeroU32, ops::Deref};
-use reqwest::Client;
 use governor::{
-    self, 
-    RateLimiter, 
-    clock::{DefaultClock, Reference, Clock},
+    self, RateLimiter,
+    clock::{Clock, DefaultClock, Reference},
     state::keyed::DashMapStateStore,
 };
+use reqwest::Client;
+use std::{num::NonZeroU32, ops::Deref};
 
-use crate::types::KeyedLimiter;
 use crate::TimeInterval;
 use crate::build_quota;
-
+use crate::types::KeyedLimiter;
 
 /// A config `struct` for build clients and hosts.
 /// ```rust
 /// use http_client::configs::Config;
 /// use http_client::{TimeInterval, RateLimitClient};
 /// use std::num::NonZeroU32;
-/// 
+///
 /// fn main() {
 ///     let client = RateLimitClient::build(Config {
 ///         quota: NonZeroU32::new(10).unwrap(),
@@ -38,12 +36,12 @@ impl Clone for Config {
         *self
     }
 }
-/// A configuration `struct` for build `hosts`. 
+/// A configuration `struct` for build `hosts`.
 /// ```rust
 /// use http_client::configs::{Config, HostConfig};
 /// use http_client::{TimeInterval, RateLimitClient};
 /// use std::num::NonZeroU32;
-/// 
+///
 /// fn main() {
 ///     let config = Config {
 ///         quota: NonZeroU32::new(10).unwrap(),
@@ -73,7 +71,7 @@ pub struct HostConfig {
 
 impl Deref for HostConfig {
     type Target = Config;
-    
+
     fn deref(&self) -> &Self::Target {
         &self.base
     }
@@ -85,30 +83,30 @@ impl Clone for HostConfig {
         *self
     }
 }
-/// Creates a configuration to clients for testing purposes. 
+/// Creates a configuration to clients for testing purposes.
 /// ```ignore
 /// let config = RateLimitClient::build_with_clock(ConfigWithClock {
 ///     base: configs,
 ///     clock: FakeRelativeClock::default()
 /// });
 /// ```
-pub struct ConfigWithClock<C: Clock + Clone>{
+pub struct ConfigWithClock<C: Clock + Clone> {
     pub base: Config,
     pub clock: C,
 }
 
 impl<C: Clock + Clone> Deref for ConfigWithClock<C> {
     type Target = Config;
-    
+
     fn deref(&self) -> &Self::Target {
         &self.base
     }
 }
 
-/// Creates a global config to every client. Hosts and non-specified clients share this 
-/// configuration. It's not recommended to change it if you **do not know** what you are doing. 
-/// 
-/// In this moment, there is no way to customize it, but in the future I plan add it. 
+/// Creates a global config to every client. Hosts and non-specified clients share this
+/// configuration. It's not recommended to change it if you **do not know** what you are doing.
+///
+/// In this moment, there is no way to customize it, but in the future I plan add it.
 #[derive(Debug)]
 pub struct GlobalConfig<C: Clock + Clone> {
     pub limit: KeyedLimiter<C>,

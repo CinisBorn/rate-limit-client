@@ -1,4 +1,4 @@
-use crate::configs::{ConfigWithClock, HostConfig, GlobalConfig};
+use crate::configs::{ConfigWithClock, GlobalConfig, HostConfig};
 use crate::helpers::get_host;
 use configs::Config;
 use dashmap::DashMap;
@@ -22,7 +22,6 @@ pub struct RateLimitClient<C: Clock + Clone = DefaultClock> {
     config: GlobalConfig<C>,
     hosts: DashMap<String, Host<C>>,
 }
-
 
 #[derive(Debug)]
 struct Host<C: Clock + Clone> {
@@ -139,11 +138,11 @@ where
     /// ```rust
     /// use std::num::NonZeroU32;
     /// use http_client::{
-    ///     RateLimitClient, 
+    ///     RateLimitClient,
     ///     TimeInterval,
     ///     configs::{Config, HostConfig},
     /// };
-    /// 
+    ///
     /// fn main() {
     ///     
     ///     let client = RateLimitClient::build(Config {
@@ -152,20 +151,17 @@ where
     ///        interval: TimeInterval::ByHours,
     ///     });
     ///
-    ///     client.build_host(HostConfig { 
+    ///     client.build_host(HostConfig {
     ///             base: Config {
     ///                 quota: NonZeroU32::new(20).unwrap(),
     ///                 burst: NonZeroU32::new(2).unwrap(),
-    ///                 interval: TimeInterval::ByHours, 
+    ///                 interval: TimeInterval::ByHours,
     ///             },
-    ///             hostname: "google.com", 
+    ///             hostname: "google.com",
     ///      });
     /// }
     /// ```
-    pub fn build_host(
-        &self,
-        config: HostConfig
-    ) {
+    pub fn build_host(&self, config: HostConfig) {
         let quota = build_quota(config.quota, config.burst, config.interval);
         let limit = RateLimiter::direct_with_clock(quota, self.config.clock.clone());
         let host_config = Host { quota: limit };

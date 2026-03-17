@@ -8,7 +8,7 @@ impl Copy for TimeInterval {}
 
 impl Clone for TimeInterval {
     fn clone(&self) -> Self {
-        *self 
+        *self
     }
 }
 

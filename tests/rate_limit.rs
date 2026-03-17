@@ -1,18 +1,18 @@
 use governor::clock::FakeRelativeClock;
 use governor::{Quota, RateLimiter};
-use std::num:: NonZeroU32;
-use std::time::Duration;
-use http_client::{RateLimitClient, TimeInterval};
 use http_client::configs::{Config, ConfigWithClock, HostConfig};
+use http_client::{RateLimitClient, TimeInterval};
+use std::num::NonZeroU32;
+use std::time::Duration;
 
-// used to simplify the process of tests with common values. 
+// used to simplify the process of tests with common values.
 const DEFAULT_BURST: NonZeroU32 = NonZeroU32::new(1).unwrap();
 
 #[test]
 fn should_respect_limit() {
     let limit = RateLimiter::direct_with_clock(
-        Quota::per_second(NonZeroU32::new(1).unwrap()), 
-        FakeRelativeClock::default()
+        Quota::per_second(NonZeroU32::new(1).unwrap()),
+        FakeRelativeClock::default(),
     );
 
     assert!(limit.check().is_ok());
@@ -23,12 +23,12 @@ fn should_respect_limit() {
 fn shoud_respect_limit_in_request() {
     let clock = FakeRelativeClock::default();
     let config = ConfigWithClock {
-        base: Config { 
-            quota: NonZeroU32::new(1).unwrap(), 
-            burst: DEFAULT_BURST, 
-            interval: TimeInterval::ByHours 
+        base: Config {
+            quota: NonZeroU32::new(1).unwrap(),
+            burst: DEFAULT_BURST,
+            interval: TimeInterval::ByHours,
         },
-        clock: clock.clone()
+        clock: clock.clone(),
     };
     let client = RateLimitClient::build_with_clock(config);
     let key = format!("https://supercalm.com");
@@ -55,36 +55,32 @@ fn should_respect_limit_by_host() {
     let host1_interval = http_client::TimeInterval::ByHours;
     let host2_interval = http_client::TimeInterval::ByMinutes;
     let config = ConfigWithClock {
-        base: Config { 
-            quota: NonZeroU32::new(1).unwrap(), 
-            burst: DEFAULT_BURST, 
-            interval: TimeInterval::ByHours 
+        base: Config {
+            quota: NonZeroU32::new(1).unwrap(),
+            burst: DEFAULT_BURST,
+            interval: TimeInterval::ByHours,
         },
-        clock: clock.clone()
+        clock: clock.clone(),
     };
-    
+
     let client = RateLimitClient::build_with_clock(config);
-    
-    client.build_host(
-        HostConfig { 
-            base: Config { 
-                quota: NonZeroU32::new(10).unwrap(), 
-                burst: DEFAULT_BURST, 
-                interval: host1_interval
-            }, 
-            hostname: "veryhappywithit.com" 
-        }
-    );
-    client.build_host(
-        HostConfig { 
-            base: Config { 
-                quota: NonZeroU32::new(5).unwrap(), 
-                burst: DEFAULT_BURST, 
-                interval: host2_interval
-            }, 
-            hostname: "coolhost.com" 
-        }
-    );
+
+    client.build_host(HostConfig {
+        base: Config {
+            quota: NonZeroU32::new(10).unwrap(),
+            burst: DEFAULT_BURST,
+            interval: host1_interval,
+        },
+        hostname: "veryhappywithit.com",
+    });
+    client.build_host(HostConfig {
+        base: Config {
+            quota: NonZeroU32::new(5).unwrap(),
+            burst: DEFAULT_BURST,
+            interval: host2_interval,
+        },
+        hostname: "coolhost.com",
+    });
 
     assert!(client.host_limit_is_ok(endpoint1));
     assert!(!client.host_limit_is_ok(endpoint1));
@@ -112,31 +108,29 @@ fn should_use_correct_quota() {
     let clock = FakeRelativeClock::default();
     let url = "https://httpbin.org/get";
     let config = ConfigWithClock {
-        base: Config { 
-            quota: NonZeroU32::new(10).unwrap(), 
-            burst: DEFAULT_BURST, 
-            interval: TimeInterval::ByMinutes, 
+        base: Config {
+            quota: NonZeroU32::new(10).unwrap(),
+            burst: DEFAULT_BURST,
+            interval: TimeInterval::ByMinutes,
         },
-        clock: clock.clone()
+        clock: clock.clone(),
     };
     let client = RateLimitClient::build_with_clock(config);
-    
-    client.build_host(
-        HostConfig { 
-            base: Config { 
-                quota: NonZeroU32::new(10).unwrap(), 
-                burst: DEFAULT_BURST, 
-                interval: TimeInterval::ByHours
-            }, 
-            hostname: "httpbin.org" 
-        }
-    );
-    
+
+    client.build_host(HostConfig {
+        base: Config {
+            quota: NonZeroU32::new(10).unwrap(),
+            burst: DEFAULT_BURST,
+            interval: TimeInterval::ByHours,
+        },
+        hostname: "httpbin.org",
+    });
+
     assert!(client.host_limit_is_ok(url));
     assert!(!client.host_limit_is_ok(url));
-    
+
     clock.advance(Duration::from_mins(20));
-    
+
     assert!(client.host_limit_is_ok(url));
 }
 
@@ -146,19 +140,22 @@ fn host_should_exists() {
     let host1 = "veryhappywithit.com";
     let host2 = "coolhost.com";
     let config = Config {
-        quota, 
-        burst: DEFAULT_BURST, 
-        interval: TimeInterval::ByHours
+        quota,
+        burst: DEFAULT_BURST,
+        interval: TimeInterval::ByHours,
     };
-    let host_config1 = HostConfig { base: config, hostname: host1 };
+    let host_config1 = HostConfig {
+        base: config,
+        hostname: host1,
+    };
     let mut host_config2 = host_config1;
     let client = RateLimitClient::build(config);
 
     host_config2.hostname = host2;
-    
+
     client.build_host(host_config1);
     client.build_host(host_config2);
-    
+
     assert!(client.host_exists(host1));
     assert!(client.host_exists(host2))
 }

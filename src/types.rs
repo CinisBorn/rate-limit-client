@@ -1,10 +1,10 @@
 //! Exports important long compound types necessary to abstract complex
-//! governor types. 
-use governor::state::{InMemoryState, NotKeyed};
-use governor::state::keyed::DashMapStateStore;
-use governor::middleware::NoOpMiddleware;
-use governor::clock::Clock;
+//! governor types.
 use governor::RateLimiter;
+use governor::clock::Clock;
+use governor::middleware::NoOpMiddleware;
+use governor::state::keyed::DashMapStateStore;
+use governor::state::{InMemoryState, NotKeyed};
 
 type Middleware<C> = NoOpMiddleware<<C as Clock>::Instant>;
 
