@@ -1,5 +1,5 @@
-use http_client::configs::Config;
-use http_client::{RateLimitClient, TimeInterval};
+use rate_limit_client::configs::Config;
+use rate_limit_client::{RateLimitClient, TimeInterval};
 use std::num::NonZeroU32;
 use wiremock::matchers::{method, path};
 use wiremock::{Mock, MockServer, ResponseTemplate};
