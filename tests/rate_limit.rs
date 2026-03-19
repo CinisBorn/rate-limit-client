@@ -31,18 +31,17 @@ fn shoud_respect_limit_in_request() {
         clock: clock.clone(),
     };
     let client = RateLimitClient::build_with_clock(config);
-    let key = format!("https://supercalm.com");
 
-    assert!(client.global_limit_is_ok(&key));
-    assert!(client.global_limit_is_err(&key));
+    assert!(client.global_limit_is_ok());
+    assert!(!client.global_limit_is_ok());
 
     clock.advance(Duration::from_secs(1));
 
-    assert!(client.global_limit_is_err(&key));
+    assert!(!client.global_limit_is_ok());
 
     clock.advance(Duration::from_hours(1));
 
-    assert!(client.global_limit_is_ok(&key));
+    assert!(client.global_limit_is_ok());
 }
 
 #[test]

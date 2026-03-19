@@ -55,8 +55,8 @@ impl RateLimitClient<DefaultClock> {
     /// Example of how to use:
     /// ```rust
     /// use std::num::NonZeroU32;
-    /// use http_client::{RateLimitClient, TimeInterval};
-    /// use http_client::configs::Config;
+    /// use rate_limit_client::{RateLimitClient, TimeInterval};
+    /// use rate_limit_client::configs::Config;
     ///
     /// fn main() {
     ///     let config = Config {
@@ -82,12 +82,7 @@ impl RateLimitClient<DefaultClock> {
 
         match self.hosts.get(&host) {
             Some(host) => host.quota.until_ready().await,
-            None => {
-                self.config
-                    .limit
-                    .until_key_ready(&"global".to_string())
-                    .await
-            }
+            None => self.config.limit.until_ready().await
         }
 
         self.config.client.get(url).send().await
@@ -110,20 +105,11 @@ where
         }
     }
 
-    /// Check if there are some available "ticket" for usage in global hosts.
-    ///
-    /// > This method will be removed in the future.
-    pub fn global_limit_is_ok(&self, key: &str) -> bool {
-        self.config.limit.check_key(&key.to_string()).is_ok()
+    /// Check is there are some ticket available
+    pub fn global_limit_is_ok(&self) -> bool {
+        self.config.limit.check().is_ok()
     }
-
-    /// Check if there are not some available "ticket" for usage in global hosts.
-    ///
-    /// > This method will be removed in the future.
-    pub fn global_limit_is_err(&self, key: &str) -> bool {
-        self.config.limit.check_key(&key.to_string()).is_err()
-    }
-
+    
     /// Check if there are some ticket in a specific host.
     pub fn host_limit_is_ok(&self, key: &str) -> bool {
         let host = get_host(key).expect("Invalid Hostname format");
@@ -137,7 +123,7 @@ where
     ///
     /// ```rust
     /// use std::num::NonZeroU32;
-    /// use http_client::{
+    /// use rate_limit_client::{
     ///     RateLimitClient,
     ///     TimeInterval,
     ///     configs::{Config, HostConfig},

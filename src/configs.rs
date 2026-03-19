@@ -1,19 +1,14 @@
-use governor::{
-    self, RateLimiter,
-    clock::{Clock, DefaultClock, Reference},
-    state::keyed::DashMapStateStore,
-};
 use reqwest::Client;
 use std::{num::NonZeroU32, ops::Deref};
+use governor::{self, RateLimiter, clock::{Clock, DefaultClock, Reference}};
 
-use crate::TimeInterval;
+use crate::{TimeInterval, types::DirectLimiter};
 use crate::build_quota;
-use crate::types::KeyedLimiter;
 
 /// A config `struct` for build clients and hosts.
 /// ```rust
-/// use http_client::configs::Config;
-/// use http_client::{TimeInterval, RateLimitClient};
+/// use rate_limit_client::configs::Config;
+/// use rate_limit_client::{TimeInterval, RateLimitClient};
 /// use std::num::NonZeroU32;
 ///
 /// fn main() {
@@ -38,8 +33,8 @@ impl Clone for Config {
 }
 /// A configuration `struct` for build `hosts`.
 /// ```rust
-/// use http_client::configs::{Config, HostConfig};
-/// use http_client::{TimeInterval, RateLimitClient};
+/// use rate_limit_client::configs::{Config, HostConfig};
+/// use rate_limit_client::{TimeInterval, RateLimitClient};
 /// use std::num::NonZeroU32;
 ///
 /// fn main() {
@@ -109,7 +104,7 @@ impl<C: Clock + Clone> Deref for ConfigWithClock<C> {
 /// In this moment, there is no way to customize it, but in the future I plan add it.
 #[derive(Debug)]
 pub struct GlobalConfig<C: Clock + Clone> {
-    pub limit: KeyedLimiter<C>,
+    pub limit: DirectLimiter<C>,
     pub client: Client,
     pub clock: C,
 }
@@ -131,9 +126,8 @@ where
     C::Instant: Reference,
 {
     pub fn build_with_clock(config: ConfigWithClock<C>) -> Self {
-        let limit = RateLimiter::new(
+        let limit = RateLimiter::direct_with_clock(
             build_quota(config.quota, config.burst, config.interval),
-            DashMapStateStore::default(),
             config.clock.clone(),
         );
 
