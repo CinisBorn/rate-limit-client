@@ -144,12 +144,11 @@ impl RateLimitClient<DefaultClock> {
     pub async fn host_get(&self, url: &str) -> Result<reqwest::Response, HttpClientError> {
         let host = get_host(url)?;
         
-        match self.hosts.get(&host) {
-            Some(host) => {
-                host.quota.until_ready().await;
-                self.config.client.get(url).send().await.map_err(HttpClientError::Request)
-            }, 
-            None => Err(HttpClientError::HostNotFound(host))
+        if let Some(host) = self.hosts.get(&host) {
+            host.quota.until_ready().await;
+            self.config.client.get(url).send().await.map_err(HttpClientError::Request)
+        } else {
+            Err(HttpClientError::HostNotFound(host))
         }
     }
 }
