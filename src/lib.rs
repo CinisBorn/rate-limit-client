@@ -78,16 +78,29 @@ impl RateLimitClient<DefaultClock> {
         }
     }
 
-    /// Perform a get request. If `url` is a invalid *url* format, it will panic.
-    pub async fn get(&self, url: &str) -> Result<reqwest::Response, reqwest::Error> {
-        let host = get_host(url).unwrap_or_else(|_| panic!("Invalid Url Format: {}", url));
-
-        match self.hosts.get(&host) {
-            Some(host) => host.quota.until_ready().await,
-            None => self.config.limit.until_ready().await
-        }
-
-        self.config.client.get(url).send().await
+    /// Perform a get request. It will use the *global* quota. 
+    /// # Errors 
+    /// If any error occurs during the request, a `HttpClientError::Request` is returned.
+    /// # Example 
+    /// The client make a `get` request to `https://httpbin.org/get`.
+    /// ```
+    /// # use rate_limit_client::{RateLimitClient, TimeInterval};
+    /// # use rate_limit_client::configs::{Config, HostConfig};
+    /// # use std::num::NonZeroU32;
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let client = RateLimitClient::build(Config {
+    ///        quota: NonZeroU32::new(50).unwrap(),
+    ///        burst: NonZeroU32::new(1).unwrap(),
+    ///        interval: TimeInterval::ByMinutes,  
+    ///     });
+    /// 
+    ///     client.get("https://httpbin.org").await;
+    /// }
+    /// ```
+    pub async fn get(&self, url: &str) -> Result<reqwest::Response, HttpClientError> {
+        self.config.limit.until_ready().await;
+        self.config.client.get(url).send().await.map_err(HttpClientError::Request)
     }
     
     /// The Client performs a get request using a registered host. The host is extracted 
