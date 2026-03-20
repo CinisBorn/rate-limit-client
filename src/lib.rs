@@ -1,16 +1,18 @@
 use crate::configs::{ConfigWithClock, GlobalConfig, HostConfig};
 use crate::helpers::get_host;
+use errors::HttpClientError;
 use configs::Config;
 use dashmap::DashMap;
 use governor::RateLimiter;
 use governor::clock::{Clock, DefaultClock, Reference};
 use helpers::build_quota;
-pub use models::{TimeInterval, UrlError};
+pub use models::{TimeInterval};
 use types::DirectLimiter;
 
 pub mod configs;
 mod helpers;
 mod models;
+pub mod errors;
 pub mod types;
 
 /// `RateLimitClient` is the main type of the library. It contains a global config and a record
@@ -86,6 +88,18 @@ impl RateLimitClient<DefaultClock> {
         }
 
         self.config.client.get(url).send().await
+    }
+    
+    pub async fn host_get(&self, url: &str) -> Result<reqwest::Response, HttpClientError> {
+        let host = get_host(url)?;
+        
+        match self.hosts.get(&host) {
+            Some(host) => {
+                host.quota.until_ready().await;
+                self.config.client.get(url).send().await.map_err(HttpClientError::Request)
+            }, 
+            None => Err(HttpClientError::HostNotFound(host))
+        }
     }
 }
 

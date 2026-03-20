@@ -11,9 +11,3 @@ impl Clone for TimeInterval {
         *self
     }
 }
-
-#[derive(Debug)]
-pub enum UrlError {
-    InvalidHost,
-    InvalidUrlPath,
-}

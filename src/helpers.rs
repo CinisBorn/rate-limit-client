@@ -1,4 +1,4 @@
-use crate::{TimeInterval, UrlError};
+use crate::{TimeInterval, errors::HttpClientError};
 use governor::Quota;
 use std::num::NonZeroU32;
 use url::Url;
@@ -11,14 +11,14 @@ pub fn build_quota(quota: NonZeroU32, burst: NonZeroU32, interval: TimeInterval)
     }
 }
 
-pub fn get_host(url: &str) -> Result<String, UrlError> {
-    let url = Url::parse(url);
+pub fn get_host(url: &str) -> Result<String, HttpClientError> {
+    let url_parsed = Url::parse(url);
 
-    match url {
-        Ok(url) => {
-            let host = url.host_str().map(|h| h.to_string());
-            host.ok_or(UrlError::InvalidHost)
+    match url_parsed {
+        Ok(u) => {
+            let host = u.host_str().map(|h| h.to_string());
+            host.ok_or(HttpClientError::NoHostname(url.to_string()))
         }
-        Err(_) => Err(UrlError::InvalidUrlPath),
+        Err(e) => Err(HttpClientError::ParseHostError(e)),
     }
 }
