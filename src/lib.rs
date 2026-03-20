@@ -90,6 +90,44 @@ impl RateLimitClient<DefaultClock> {
         self.config.client.get(url).send().await
     }
     
+    /// The Client performs a get request using a registered host. The host is extracted 
+    /// from `url`.  You can register a host using the `build_host` method. 
+    /// 
+    /// If you use `get` instead of `host_get`, this request will use the 
+    /// global quota instead of host's quota. No error is triggered. 
+    /// 
+    /// # Errors
+    /// - If the host doesn't exist (It isn't registered), a 
+    /// `HostNotFound` will be returned.
+    /// - If the `url` is in a invalid format, a `Parse` error is returned. 
+    /// - If the `url` doesn't contain any *hostname*, a `NoHostname` is returned. 
+    /// 
+    /// Any other errors return a `Request` error.
+    /// # Example
+    /// Sets a config and client, then register a host.  The host contains the same 
+    /// config than *global*, but it can be changed specifing a `HostConfig` with a 
+    /// different `base` field.
+    /// ```
+    /// # use rate_limit_client::{RateLimitClient, TimeInterval};
+    /// # use rate_limit_client::configs::{Config, HostConfig};
+    /// # use std::num::NonZeroU32;
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let config = Config {
+    ///        quota: NonZeroU32::new(10).unwrap(),
+    ///        burst: NonZeroU32::new(2).unwrap(),
+    ///        interval: TimeInterval::BySeconds,  
+    ///     };
+    ///     let client = RateLimitClient::build(config);
+    ///     
+    ///     client.build_host(HostConfig {
+    ///         base: config,
+    ///         hostname: "httpbin"
+    ///     });
+    ///     
+    ///     client.host_get("https://httpbin.org").await;
+    /// }
+    /// ```
     pub async fn host_get(&self, url: &str) -> Result<reqwest::Response, HttpClientError> {
         let host = get_host(url)?;
         
