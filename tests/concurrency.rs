@@ -2,6 +2,8 @@ use rate_limit_client::configs::{Config, HostConfig};
 use rate_limit_client::errors::HttpClientError;
 use rate_limit_client::{RateLimitClient, TimeInterval};
 use std::num::NonZeroU32;
+use std::sync::Arc;
+use tokio::time::Instant;
 use wiremock::matchers::{method, path};
 use wiremock::{Mock, MockServer, ResponseTemplate};
 
@@ -101,4 +103,31 @@ async fn host_should_not_be_found() -> Result<(), ()>{
         HttpClientError::ParseHostError(_) => Err(()),
         HttpClientError::Request(_) => Err(())
     }
+}
+
+#[tokio::test]
+async fn concurrent_requests_respect_limit() {
+    let client = Arc::new(RateLimitClient::build(Config {
+        quota: NonZeroU32::new(10).unwrap(),
+        burst: NonZeroU32::new(1).unwrap(),
+        interval: TimeInterval::BySeconds,
+    }));
+    
+    let start = Instant::now();
+    let mut handles = vec![];
+    
+    for _ in 0..100 {
+        let client = Arc::clone(&client);
+        handles.push(tokio::spawn(async move {
+            client.get("https://httpbin.org/get").await
+        }));
+    }
+    
+    for handle in handles {
+        handle.await.unwrap().unwrap();
+    }
+    
+    let elapsed = start.elapsed();
+    // 100 requests a 10/seg = ~10 segundos
+    assert!(elapsed.as_secs() >= 9 && elapsed.as_secs() <= 11);
 }
