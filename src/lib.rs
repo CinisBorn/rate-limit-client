@@ -1,3 +1,210 @@
+//! # Description 
+//! 
+//! This project is a rate-limited HTTP client. It limits the number of requests 
+//! made based on a configured quota and time interval.
+//! 
+//! ## Example
+//! 
+//! Let's suppose we want to get information from `api.github.com` 
+//! without authentication. It has a limit of 60 requests per hour. 
+//! We want to prevent 429 (Too Many Requests) errors:
+//! 
+//! ```no_run
+//! use rate_limit_client::{
+//!     RateLimitClient, 
+//!     TimeInterval,
+//!     configs::{Config, HostConfig}
+//! };
+//! use std::{error::Error, num::NonZeroU32};
+//! 
+//! #[tokio::main]
+//! async fn main() -> Result<(), Box<dyn Error>> {
+//!     let client = RateLimitClient::build(Config {
+//!         quota: NonZeroU32::new(10).unwrap(),
+//!         burst: NonZeroU32::new(2).unwrap(),
+//!         interval: TimeInterval::ByMinutes,
+//!     });
+//!     
+//!     client.build_host(HostConfig {
+//!         base: Config {
+//!             quota: NonZeroU32::new(60).unwrap(),
+//!             burst: NonZeroU32::new(1).unwrap(),
+//!             interval: TimeInterval::ByHours,
+//!         },
+//!         hostname: "api.github.com",
+//!     });
+//!     
+//!     // Makes 100 requests to GitHub - respects the 60/hour limit
+//!     for i in 1..=100 {
+//!         let user = format!("https://api.github.com/users/user{}", i);
+//!         let response = client.host_get(&user).await?;
+//!         
+//!         println!("User {}: {}", i, response.status());
+//!     }
+//!     
+//!     Ok(())
+//! }
+//! ```
+//! 
+//! The client will perform requests to `api.github.com` at a rate of 60 per hour,
+//! while other hosts use the global limit of 10 per minute.
+//! 
+//! ## Configuration 
+//! 
+//! Configure the client with quota, burst, and time interval:
+//! 
+//! ```rust
+//! # use rate_limit_client::{RateLimitClient, TimeInterval};
+//! # use rate_limit_client::configs::Config;
+//! # use std::num::NonZeroU32;
+//! let client = RateLimitClient::build(Config {
+//!     quota: NonZeroU32::new(10).unwrap(),
+//!     burst: NonZeroU32::new(2).unwrap(),
+//!     interval: TimeInterval::ByMinutes,
+//! });
+//! ```
+//! 
+//! This internally calculates the rate as `quota / interval`. 
+//! In this case: 10 requests per 60 seconds = 1 request every 6 seconds.
+//! 
+//! The **burst** is the maximum number of tokens that can accumulate during an 
+//! idle period. In this case, after 12 seconds of idle time, two tokens accumulate. 
+//! When you make a request after this idle period, you can make two simultaneous 
+//! requests immediately.
+//! 
+//! ## Host Configuration
+//! 
+//! Register a host with its own specific rate limit:
+//! 
+//! ```rust
+//! # use rate_limit_client::{RateLimitClient, TimeInterval};
+//! # use rate_limit_client::configs::{Config, HostConfig};
+//! # use std::num::NonZeroU32;
+//! # let client = RateLimitClient::build(Config {
+//! #     quota: NonZeroU32::new(10).unwrap(),
+//! #     burst: NonZeroU32::new(2).unwrap(),
+//! #     interval: TimeInterval::ByMinutes,
+//! # });
+//! client.build_host(HostConfig {
+//!     base: Config {
+//!         quota: NonZeroU32::new(60).unwrap(),
+//!         burst: NonZeroU32::new(1).unwrap(),
+//!         interval: TimeInterval::ByHours,
+//!     },
+//!     hostname: "api.github.com",
+//! });
+//! ```
+//! 
+//! This configures rate limiting specifically for `api.github.com`.
+//! 
+//! ## Global Quota vs Host Quota
+//! 
+//! The main difference is that the **global quota** is shared among all 
+//! non-registered hosts, while **host quotas** are isolated per host.
+//! 
+//! ### Using Global Quota
+//! 
+//! The `get` method uses the global quota:
+//! 
+//! ```no_run
+//! # use rate_limit_client::{RateLimitClient, TimeInterval};
+//! # use rate_limit_client::configs::Config;
+//! # use std::{error::Error, num::NonZeroU32};
+//! # #[tokio::main]
+//! # async fn main() -> Result<(), Box<dyn Error>> {
+//! # let client = RateLimitClient::build(Config {
+//! #     quota: NonZeroU32::new(10).unwrap(),
+//! #     burst: NonZeroU32::new(2).unwrap(),
+//! #     interval: TimeInterval::ByMinutes,
+//! # });
+//! // Uses global quota (10 per minute)
+//! for i in 1..=100 {
+//!     let user = format!("https://api.github.com/users/user{}", i);
+//!     let response = client.get(&user).await?;
+//!     println!("User {}: {}", i, response.status());
+//! }
+//! # Ok(())
+//! # }
+//! ```
+//! 
+//! This makes requests at a rate of one every 6 seconds (10 per minute). 
+//! However, this will eventually fail because GitHub's API has a 
+//! limit of 60 requests per hour, and you will receive HTTP 429 
+//! (Too Many Requests) errors.
+//! 
+//! ### Using Host-Specific Quota
+//! 
+//! The `host_get` method uses the registered host's quota:
+//! 
+//! ```no_run
+//! # use rate_limit_client::{RateLimitClient, TimeInterval};
+//! # use rate_limit_client::configs::{Config, HostConfig};
+//! # use std::{error::Error, num::NonZeroU32};
+//! # #[tokio::main]
+//! # async fn main() -> Result<(), Box<dyn Error>> {
+//! # let client = RateLimitClient::build(Config {
+//! #     quota: NonZeroU32::new(10).unwrap(),
+//! #     burst: NonZeroU32::new(2).unwrap(),
+//! #     interval: TimeInterval::ByMinutes,
+//! # });
+//! # client.build_host(HostConfig {
+//! #     base: Config {
+//! #         quota: NonZeroU32::new(60).unwrap(),
+//! #         burst: NonZeroU32::new(1).unwrap(),
+//! #         interval: TimeInterval::ByHours,
+//! #     },
+//! #     hostname: "api.github.com",
+//! # });
+//! // Uses host quota (60 per hour for api.github.com)
+//! for i in 1..=100 {
+//!     let user = format!("https://api.github.com/users/user{}", i);
+//!     let response = client.host_get(&user).await?;
+//!     println!("User {}: {}", i, response.status());
+//! }
+//! # Ok(())
+//! # }
+//! ```
+//! 
+//! **Important:** If you use `get` instead of `host_get`, you will use the 
+//! global quota, even for registered hosts.
+//! 
+//! ## Concurrent Usage
+//! 
+//! Wrap the client in an `Arc` to share it across multiple tasks:
+//! 
+//! ```no_run
+//! # use rate_limit_client::{RateLimitClient, TimeInterval};
+//! # use rate_limit_client::configs::Config;
+//! # use std::{error::Error, num::NonZeroU32, sync::Arc};
+//! # #[tokio::main]
+//! # async fn main() -> Result<(), Box<dyn Error>> {
+//! # let config = Config {
+//! #     quota: NonZeroU32::new(10).unwrap(),
+//! #     burst: NonZeroU32::new(2).unwrap(),
+//! #     interval: TimeInterval::ByMinutes,
+//! # };
+//! let client = Arc::new(RateLimitClient::build(config));
+//! 
+//! let mut handles = vec![];
+//! for i in 1..=100 {
+//!     let client = Arc::clone(&client);
+//!     let handle = tokio::spawn(async move {
+//!         let url = format!("https://api.example.com/item/{}", i);
+//!         client.get(&url).await
+//!     });
+//!     handles.push(handle);
+//! }
+//! 
+//! // Wait for all tasks to complete
+//! for handle in handles {
+//!     handle.await??;
+//! }
+//! # Ok(())
+//! # }
+//! ```
+//! 
+//! All spawned tasks will share the same rate limiter, ensuring the total 
+//! rate across all tasks respects the configured quota.
 use crate::configs::{ConfigWithClock, GlobalConfig, HostConfig};
 use crate::helpers::get_host;
 use errors::HttpClientError;
