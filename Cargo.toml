@@ -2,6 +2,8 @@
 name = "rate_limit_client"
 version = "0.1.0"
 edition = "2024"
+description = "A rate-limiter http client"
+license = "MIT"
 
 [dependencies]
 tokio = { version = "1.49.0", features = ["full"] }
