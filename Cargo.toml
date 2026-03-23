@@ -4,6 +4,10 @@ version = "0.1.0"
 edition = "2024"
 description = "A rate-limiter http client"
 license = "MIT"
+repository = "https://github.com/CinisBorn/rate-limit-client"
+readme = "README.md"
+keywords = ["rate-limit", "http", "client", "async"]
+categories = ["web-programming::http-client"]
 
 [dependencies]
 tokio = { version = "1.49.0", features = ["full"] }
