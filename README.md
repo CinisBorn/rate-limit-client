@@ -126,3 +126,11 @@ for i in 1..=100 {
 All spawned tasks will share the same rate limiter, ensuring the total rate across all tasks respects the configured quota.
 
 In contrast to the global quota, you can register a host with its own specific configuration. Once you have registered a host, you can make requests using the `host_get` method. This will use the host's specific quota instead of the global quota. If you use `get` instead of `host_get`, you will use the global quota, even for registered hosts.
+
+# Roadmap
+
+1. Refatore the code 
+2. Add more HTTP methods (POST, PATCH, DELETE...)
+3. Add more configuration options 
+
+Next steps soon!
