@@ -5,7 +5,15 @@ use governor::{self, RateLimiter, clock::{Clock, DefaultClock, Reference}};
 use crate::{TimeInterval, types::DirectLimiter};
 use crate::build_quota;
 
-/// A config `struct` for build clients and hosts.
+/// A config `struct` for building clients and hosts.
+/// 
+/// The `quota` is the number of "tokens" allowed in a `interval`. The calculation is
+/// `quota/interval` where `interval` is expressed in seconds. The result is the *frequency* 
+/// at which *tokens* are recovered. 
+/// 
+/// The `burst` is the amount of *tokens* that can stack. If set to 2, the client 
+/// can perform 2 requests at the start. When idle for `frequency * 2`, the stack is full 
+/// again.
 /// ```rust
 /// use rate_limit_client::configs::Config;
 /// use rate_limit_client::{TimeInterval, RateLimitClient};
