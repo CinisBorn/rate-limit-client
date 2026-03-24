@@ -238,30 +238,11 @@ struct Host<C: Clock + Clone> {
 }
 
 impl RateLimitClient<DefaultClock> {
-    /// Builds a client with the specified `quota`, `burst`, and `time`. It is the most common way to
-    /// create a client.
-    ///
-    /// `quota` is a `NonZeroU32` type used to determine the interval of "ticket" recovery.
-    /// Suppose you build a client with a quota of `10`, a burst of `1`, a `time` of
-    /// `ByMinutes`, which means that you can make one request every 6 minutes.
-    ///
-    /// The `burst` determines how many tickets that can stack. If you
-    /// set `burst` to `2`, up to two request can be made immediatelly.
-
-    /// After a specific time interval is finished, you can perform another `1` operation.
-    ///
-    /// Let's consider the example from the `quota` section description where
-    /// our client recovers one ticket every 6 minutes. With a burst of `2`,
-    /// it will request two at
-    /// same time, then each 6 minutes, you can perform other request. If the client is idle by at
-    /// least 12 minutes, when you do a request, it will be two at same time again.
-    ///
-    /// `time` is the interval meansurement used along of `quota` for determine the interval. It's
-    /// something like `quota`/`time`, but it's more complex than it, of course.
+    /// Builds a client with a configuration struct, `Config`. The configuration is *global* 
+    /// to all requests. See `host_build` for creating a configuration for particular hosts. 
     ///
     /// For more information see [Generic Cell Rate Algorithm](https://en.wikipedia.org/wiki/Generic_cell_rate_algorithm)
-    ///
-    /// Example of how to use:
+    /// # Example
     /// ```rust
     /// use std::num::NonZeroU32;
     /// use rate_limit_client::{RateLimitClient, TimeInterval};
