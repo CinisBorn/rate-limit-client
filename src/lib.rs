@@ -365,6 +365,7 @@ where
     C: Clock + Clone,
     C::Instant: Reference,
 {
+    #[doc(hidden)]
     /// Builds a client with a clock. It's common in testing scenarios. It's strongly recommended
     /// to build a client using `build`.
     pub fn build_with_clock(config: ConfigWithClock<C>) -> Self {
@@ -375,12 +376,13 @@ where
             hosts: DashMap::new(),
         }
     }
-
+    
+    #[doc(hidden)]
     /// Check is there are some ticket available
     pub fn global_limit_is_ok(&self) -> bool {
         self.config.limit.check().is_ok()
     }
-    
+    #[doc(hidden)]
     /// Check if there are some ticket in a specific host.
     pub fn host_limit_is_ok(&self, key: &str) -> bool {
         let host = get_host(key).expect("Invalid Hostname format");

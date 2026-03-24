@@ -98,6 +98,7 @@ impl<C: Clock + Clone> Deref for ConfigWithClock<C> {
     }
 }
 
+#[doc(hidden)]
 /// Creates a global config to every client. Hosts and non-specified clients share this
 /// configuration. It's not recommended to change it if you **do not know** what you are doing.
 ///
