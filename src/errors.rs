@@ -1,10 +1,17 @@
+//! This module contains every error structs for error handling. 
 use std::fmt;
 
+/// Error for client operations.
 #[derive(Debug)]
 pub enum HttpClientError {
+    /// Trigger if the url passed is invalid
     ParseHostError(url::ParseError),
+    /// Trigger if host is not registered when `host_get` method is used.
     HostNotFound(String),
+    /// Trigger when an error occurs during the request.
     Request(reqwest::Error),
+    /// Trigger if it's not possible extract the hostname from a url
+    /// when `host_get` method is used.
     NoHostname(String)
 }
 
