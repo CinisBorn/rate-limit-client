@@ -382,34 +382,30 @@ where
         host.quota.check().is_ok()
     }
 
-    /// Builds a host with a separated quota. You must pass a valid hostname, not a *url*.
-    /// Example of usage:
-    ///
+    /// Builds a host with a separated configuration. 
+    /// # Example 
     /// ```rust
-    /// use std::num::NonZeroU32;
-    /// use rate_limit_client::{
-    ///     RateLimitClient,
-    ///     TimeInterval,
-    ///     configs::{Config, HostConfig},
-    /// };
-    ///
-    /// fn main() {
-    ///     
-    ///     let client = RateLimitClient::build(Config {
-    ///        quota: NonZeroU32::new(2).unwrap(),
-    ///        burst: NonZeroU32::new(1).unwrap(),
-    ///        interval: TimeInterval::ByHours,
-    ///     });
-    ///
-    ///     client.build_host(HostConfig {
-    ///             base: Config {
-    ///                 quota: NonZeroU32::new(20).unwrap(),
-    ///                 burst: NonZeroU32::new(2).unwrap(),
-    ///                 interval: TimeInterval::ByHours,
-    ///             },
-    ///             hostname: "google.com",
-    ///      });
-    /// }
+    /// # use std::num::NonZeroU32;
+    /// # use rate_limit_client::{
+    /// #    RateLimitClient,
+    /// #   TimeInterval,
+    /// #    configs::{Config, HostConfig},
+    /// # };
+    /// # fn main() {
+    ///     # let client = RateLimitClient::build(Config {
+    ///        # quota: NonZeroU32::new(2).unwrap(),
+    ///        # burst: NonZeroU32::new(1).unwrap(),
+    ///        # interval: TimeInterval::ByHours,
+    ///     # });
+    ///client.build_host(HostConfig {
+    ///   base: Config {
+    ///      quota: NonZeroU32::new(20).unwrap(),
+    ///      burst: NonZeroU32::new(2).unwrap(),
+    ///      interval: TimeInterval::ByHours,
+    ///    },
+    ///   hostname: "google.com",
+    /// });
+    /// # }
     /// ```
     pub fn build_host(&self, config: HostConfig) {
         let quota = build_quota(config.quota, config.burst, config.interval);
