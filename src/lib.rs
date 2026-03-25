@@ -10,12 +10,12 @@
 //! We want to prevent 429 (Too Many Requests) errors:
 //! 
 //! ```no_run
+//! use std::{error::Error, num::NonZeroU32};
 //! use rate_limit_client::{
 //!     RateLimitClient, 
 //!     TimeInterval,
 //!     configs::{Config, HostConfig}
 //! };
-//! use std::{error::Error, num::NonZeroU32};
 //! 
 //! #[tokio::main]
 //! async fn main() -> Result<(), Box<dyn Error>> {
@@ -162,16 +162,14 @@
 //! #     },
 //! #     hostname: "api.github.com",
 //! # });
-//! // Uses host quota (60 per hour for api.github.com)
-//! for i in 1..=100 {
-//!     let user = format!("https://api.github.com/users/user{}", i);
-//!     let response = client.host_get(&user).await;
-//! 
-//!         match response {
-//!             Ok(response) => println!("User {}: {}", i, response.status()),
-//!             Err(e) => eprintln!("{}", e.to_string())
-//!         }
-//! }
+//! # for i in 1..=100 {
+//!   # let user = format!("https://api.github.com/users/user{}", i);
+//! let response = client.host_get(&user).await;
+//!     #    match response {
+//!     #      Ok(response) => println!("User {}: {}", i, response.status()),
+//!     #      Err(e) => eprintln!("{}", e.to_string())
+//!     # }
+//! # }
 //! # Ok(())
 //! # }
 //! ```
