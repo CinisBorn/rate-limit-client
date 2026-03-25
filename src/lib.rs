@@ -37,9 +37,12 @@
 //!     // Makes 100 requests to GitHub - respects the 60/hour limit
 //!     for i in 1..=100 {
 //!         let user = format!("https://api.github.com/users/user{}", i);
-//!         let response = client.host_get(&user).await?;
+//!         let response = client.host_get(&user).await;
 //!         
-//!         println!("User {}: {}", i, response.status());
+//!         match response {
+//!             Ok(response) => println!("User {}: {}", i, response.status()),
+//!             Err(e) => eprintln!("{}", e.to_string())
+//!         }
 //!     }
 //!     
 //!     Ok(())
@@ -120,8 +123,12 @@
 //! // Uses global quota (10 per minute)
 //! for i in 1..=100 {
 //!     let user = format!("https://api.github.com/users/user{}", i);
-//!     let response = client.get(&user).await?;
-//!     println!("User {}: {}", i, response.status());
+//!     let response = client.get(&user).await;
+//! 
+//!         match response {
+//!             Ok(response) => println!("User {}: {}", i, response.status()),
+//!             Err(e) => eprintln!("{}", e.to_string())
+//!         }
 //! }
 //! # Ok(())
 //! # }
@@ -158,8 +165,12 @@
 //! // Uses host quota (60 per hour for api.github.com)
 //! for i in 1..=100 {
 //!     let user = format!("https://api.github.com/users/user{}", i);
-//!     let response = client.host_get(&user).await?;
-//!     println!("User {}: {}", i, response.status());
+//!     let response = client.host_get(&user).await;
+//! 
+//!         match response {
+//!             Ok(response) => println!("User {}: {}", i, response.status()),
+//!             Err(e) => eprintln!("{}", e.to_string())
+//!         }
 //! }
 //! # Ok(())
 //! # }
@@ -197,7 +208,7 @@
 //! 
 //! // Wait for all tasks to complete
 //! for handle in handles {
-//!     handle.await??;
+//!     handle.await;
 //! }
 //! # Ok(())
 //! # }
