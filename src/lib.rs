@@ -226,9 +226,10 @@ pub use models::{TimeInterval};
 use types::DirectLimiter;
 
 pub mod configs;
+pub mod errors;
+
 mod helpers;
 mod models;
-pub mod errors;
 mod types;
 
 /// `RateLimitClient` is the main type of the library. It contains a global config and a record
