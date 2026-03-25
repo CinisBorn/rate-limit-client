@@ -44,12 +44,17 @@ impl Clone for Config {
         *self
     }
 }
-/// Sets the configuration for a specific host  
+/// Configuration for a specific host.
+/// 
+/// `Config` sets a global configuration to all hosts. `HostConfig` allows 
+/// setting a specific configuration for a specific host. You can reuse the 
+/// same *base configuration* among hosts because `Config` is `Copy`.
+/// 
+/// # Example
 /// ```rust
-/// use rate_limit_client::configs::{Config, HostConfig};
-/// use rate_limit_client::{TimeInterval, RateLimitClient};
-/// use std::num::NonZeroU32;
-///
+/// # use rate_limit_client::configs::{Config, HostConfig};
+/// # use rate_limit_client::{TimeInterval, RateLimitClient};
+/// # use std::num::NonZeroU32;
 /// fn main() {
 ///     let config = Config {
 ///         quota: NonZeroU32::new(10).unwrap(),
@@ -62,6 +67,7 @@ impl Clone for Config {
 ///         base: config,
 ///         hostname: "google.com"
 ///     });
+/// 
 ///     client.build_host(HostConfig {
 ///         base: Config {
 ///             quota: NonZeroU32::new(12).unwrap(),
@@ -73,7 +79,9 @@ impl Clone for Config {
 /// }
 /// ```
 pub struct HostConfig {
+    /// A base configuration. See `Config` for more details.
     pub base: Config,
+    /// The hostname target. 
     pub hostname: &'static str,
 }
 
