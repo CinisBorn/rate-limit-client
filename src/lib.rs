@@ -229,7 +229,7 @@ pub mod configs;
 mod helpers;
 mod models;
 pub mod errors;
-pub mod types;
+mod types;
 
 /// `RateLimitClient` is the main type of the library. It contains a global config and a record
 /// of all registered hosts.
