@@ -10,7 +10,7 @@ use governor::{self, RateLimiter, clock::{Clock, DefaultClock, Reference}};
 use crate::{TimeInterval, types::DirectLimiter};
 use crate::build_quota;
 
-/// A config `struct` for building clients and hosts.
+/// A base config struct for building clients and hosts.
 /// 
 /// The `quota` is the number of "tokens" allowed in a `interval`. The calculation is
 /// `quota/interval` where `interval` is expressed in seconds. The result is the *frequency* 
@@ -44,7 +44,7 @@ impl Clone for Config {
         *self
     }
 }
-/// A configuration `struct` for build `hosts`.
+/// Sets the configuration for a specific host  
 /// ```rust
 /// use rate_limit_client::configs::{Config, HostConfig};
 /// use rate_limit_client::{TimeInterval, RateLimitClient};
@@ -98,6 +98,7 @@ impl Clone for HostConfig {
 ///     clock: FakeRelativeClock::default()
 /// });
 /// ```
+#[doc(hidden)]
 pub struct ConfigWithClock<C: Clock + Clone> {
     pub base: Config,
     pub clock: C,
