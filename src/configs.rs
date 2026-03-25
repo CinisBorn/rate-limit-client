@@ -1,3 +1,8 @@
+//! This module provides all available configuration structs. 
+//! 
+//! `Config` is the *base* configuration for every other configuration type.
+//! `HostConfig` and other types of configuration are derived from `Config`.
+
 use reqwest::Client;
 use std::{num::NonZeroU32, ops::Deref};
 use governor::{self, RateLimiter, clock::{Clock, DefaultClock, Reference}};
