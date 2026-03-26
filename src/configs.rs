@@ -1,4 +1,4 @@
-//! This module provides all available configuration structs. 
+//! This module provides all available configuration structs and enums. 
 //! 
 //! `Config` is the *base* configuration for every other configuration type.
 //! `HostConfig` and other types of configuration are derived from `Config`.
@@ -7,8 +7,59 @@ use reqwest::Client;
 use std::{num::NonZeroU32, ops::Deref};
 use governor::{self, RateLimiter, clock::{Clock, DefaultClock, Reference}};
 
-use crate::{TimeInterval, types::DirectLimiter};
+use crate::types::DirectLimiter;
 use crate::build_quota;
+
+/// Time interval unit for rate limiting calculations.
+///
+/// Specifies the time window over which the quota is distributed. Used in
+/// conjunction with the `quota` field in [`Config`] to determine the rate.
+///
+/// # Calculation
+///
+/// The effective rate is calculated as `quota / interval`. For example:
+/// - `quota: 60, interval: ByMinutes` = 60 requests per minute = 1 request/second
+/// - `quota: 10, interval: BySeconds` = 10 requests per second
+///
+/// # Examples
+///
+/// ```
+/// use rate_limit_client::RateLimitClient;
+/// use rate_limit_client::configs::{Config, TimeInterval};
+/// use std::num::NonZeroU32;
+///
+/// // 100 requests per hour
+/// let client = RateLimitClient::build(Config {
+///     quota: NonZeroU32::new(100).unwrap(),
+///     burst: NonZeroU32::new(1).unwrap(),
+///     interval: TimeInterval::ByHours,
+/// });
+/// ```
+///
+/// [`Config`]: crate::configs::Config
+pub enum TimeInterval {
+    /// Time interval in seconds.
+    ///
+    /// Use for high-frequency rate limits (e.g., 100 requests per second).
+    BySeconds,
+    
+    /// Time interval in minutes.
+    ///
+    /// Use for moderate rate limits (e.g., 60 requests per minute).
+    ByMinutes,
+    
+    /// Time interval in hours.
+    ///
+    /// Use for low-frequency rate limits (e.g., 1000 requests per hour).
+    ByHours,
+}
+
+impl Copy for TimeInterval {}
+impl Clone for TimeInterval {
+    fn clone(&self) -> Self {
+        *self
+    }
+}
 
 /// A base config struct for building clients and hosts.
 /// 
@@ -20,8 +71,8 @@ use crate::build_quota;
 /// can perform 2 requests at the start. When idle for `frequency * 2`, the stack is full 
 /// again.
 /// ```rust
-/// use rate_limit_client::configs::Config;
-/// use rate_limit_client::{TimeInterval, RateLimitClient};
+/// use rate_limit_client::configs::{Config, TimeInterval};
+/// use rate_limit_client::RateLimitClient;
 /// use std::num::NonZeroU32;
 ///
 /// fn main() {
@@ -52,8 +103,8 @@ impl Clone for Config {
 /// 
 /// # Example
 /// ```rust
-/// # use rate_limit_client::configs::{Config, HostConfig};
-/// # use rate_limit_client::{TimeInterval, RateLimitClient};
+/// # use rate_limit_client::configs::{Config, HostConfig, TimeInterval};
+/// # use rate_limit_client::RateLimitClient;
 /// # use std::num::NonZeroU32;
 /// fn main() {
 ///     let config = Config {

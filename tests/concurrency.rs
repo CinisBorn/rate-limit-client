@@ -1,6 +1,6 @@
-use rate_limit_client::configs::{Config, HostConfig};
+use rate_limit_client::configs::{Config, HostConfig, TimeInterval};
 use rate_limit_client::errors::HttpClientError;
-use rate_limit_client::{RateLimitClient, TimeInterval};
+use rate_limit_client::RateLimitClient;
 use std::num::NonZeroU32;
 use std::sync::Arc;
 use tokio::time::Instant;

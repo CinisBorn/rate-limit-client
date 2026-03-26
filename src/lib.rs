@@ -13,8 +13,7 @@
 //! use std::{error::Error, num::NonZeroU32};
 //! use rate_limit_client::{
 //!     RateLimitClient, 
-//!     TimeInterval,
-//!     configs::{Config, HostConfig}
+//!     configs::{Config, HostConfig, TimeInterval}
 //! };
 //! 
 //! #[tokio::main]
@@ -57,8 +56,8 @@
 //! Configure the client with quota, burst, and time interval:
 //! 
 //! ```rust
-//! # use rate_limit_client::{RateLimitClient, TimeInterval};
-//! # use rate_limit_client::configs::Config;
+//! # use rate_limit_client::RateLimitClient;
+//! # use rate_limit_client::configs::{Config, TimeInterval};
 //! # use std::num::NonZeroU32;
 //! let client = RateLimitClient::build(Config {
 //!     quota: NonZeroU32::new(10).unwrap(),
@@ -80,8 +79,8 @@
 //! Register a host with its own specific rate limit:
 //! 
 //! ```rust
-//! # use rate_limit_client::{RateLimitClient, TimeInterval};
-//! # use rate_limit_client::configs::{Config, HostConfig};
+//! # use rate_limit_client::RateLimitClient;
+//! # use rate_limit_client::configs::{Config, HostConfig, TimeInterval};
 //! # use std::num::NonZeroU32;
 //! # let client = RateLimitClient::build(Config {
 //! #     quota: NonZeroU32::new(10).unwrap(),
@@ -110,8 +109,8 @@
 //! The `get` method uses the global quota:
 //! 
 //! ```no_run
-//! # use rate_limit_client::{RateLimitClient, TimeInterval};
-//! # use rate_limit_client::configs::Config;
+//! # use rate_limit_client::RateLimitClient;
+//! # use rate_limit_client::configs::{Config, TimeInterval};
 //! # use std::{error::Error, num::NonZeroU32};
 //! # #[tokio::main]
 //! # async fn main() -> Result<(), Box<dyn Error>> {
@@ -144,8 +143,8 @@
 //! The `host_get` method uses the registered host's quota:
 //! 
 //! ```no_run
-//! # use rate_limit_client::{RateLimitClient, TimeInterval};
-//! # use rate_limit_client::configs::{Config, HostConfig};
+//! # use rate_limit_client::RateLimitClient;
+//! # use rate_limit_client::configs::{Config, HostConfig, TimeInterval};
 //! # use std::{error::Error, num::NonZeroU32};
 //! # #[tokio::main]
 //! # async fn main() -> Result<(), Box<dyn Error>> {
@@ -182,8 +181,8 @@
 //! Wrap the client in an `Arc` to share it across multiple tasks:
 //! 
 //! ```no_run
-//! # use rate_limit_client::{RateLimitClient, TimeInterval};
-//! # use rate_limit_client::configs::Config;
+//! # use rate_limit_client::RateLimitClient;
+//! # use rate_limit_client::configs::{Config, TimeInterval};
 //! # use std::{error::Error, num::NonZeroU32, sync::Arc};
 //! # #[tokio::main]
 //! # async fn main() -> Result<(), Box<dyn Error>> {
@@ -217,19 +216,17 @@
 use crate::configs::{ConfigWithClock, GlobalConfig, HostConfig};
 use crate::helpers::get_host;
 use errors::HttpClientError;
-use configs::Config;
+use configs::{Config, TimeInterval};
 use dashmap::DashMap;
 use governor::RateLimiter;
 use governor::clock::{Clock, DefaultClock, Reference};
 use helpers::build_quota;
-pub use models::{TimeInterval};
 use types::DirectLimiter;
 
 pub mod configs;
 pub mod errors;
 
 mod helpers;
-mod models;
 mod types;
 
 /// `RateLimitClient` is the main type of the library. It contains a global config and a record
@@ -255,8 +252,8 @@ impl RateLimitClient<DefaultClock> {
     /// # Example
     /// ```rust
     /// use std::num::NonZeroU32;
-    /// use rate_limit_client::{RateLimitClient, TimeInterval};
-    /// use rate_limit_client::configs::Config;
+    /// use rate_limit_client::RateLimitClient;
+    /// use rate_limit_client::configs::{Config, TimeInterval};
     ///
     /// fn main() {
     ///     let config = Config {
@@ -282,8 +279,8 @@ impl RateLimitClient<DefaultClock> {
     /// # Example 
     /// The client make a `get` request to `https://httpbin.org/get`.
     /// ```
-    /// # use rate_limit_client::{RateLimitClient, TimeInterval};
-    /// # use rate_limit_client::configs::{Config, HostConfig};
+    /// # use rate_limit_client::RateLimitClient;
+    /// # use rate_limit_client::configs::{Config, HostConfig, TimeInterval};
     /// # use std::num::NonZeroU32;
     /// #[tokio::main]
     /// async fn main() {
@@ -319,8 +316,8 @@ impl RateLimitClient<DefaultClock> {
     /// config than *global*, but it can be changed specifing a `HostConfig` with a 
     /// different `base` field.
     /// ```
-    /// # use rate_limit_client::{RateLimitClient, TimeInterval};
-    /// # use rate_limit_client::configs::{Config, HostConfig};
+    /// # use rate_limit_client::RateLimitClient;
+    /// # use rate_limit_client::configs::{Config, HostConfig, TimeInterval};
     /// # use std::num::NonZeroU32;
     /// #[tokio::main]
     /// async fn main() {
@@ -388,8 +385,7 @@ where
     /// # use std::num::NonZeroU32;
     /// # use rate_limit_client::{
     /// #    RateLimitClient,
-    /// #   TimeInterval,
-    /// #    configs::{Config, HostConfig},
+    /// #    configs::{Config, HostConfig, TimeInterval},
     /// # };
     /// # fn main() {
     ///     # let client = RateLimitClient::build(Config {

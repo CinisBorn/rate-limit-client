@@ -1,7 +1,12 @@
 use governor::clock::FakeRelativeClock;
 use governor::{Quota, RateLimiter};
-use rate_limit_client::configs::{Config, ConfigWithClock, HostConfig};
-use rate_limit_client::{RateLimitClient, TimeInterval};
+use rate_limit_client::configs::{
+    Config, 
+    ConfigWithClock, 
+    HostConfig, 
+    TimeInterval
+};
+use rate_limit_client::RateLimitClient;
 use std::num::NonZeroU32;
 use std::time::Duration;
 
@@ -51,8 +56,8 @@ fn should_respect_limit_by_host() {
     let endpoint1 = "http://veryhappywithit.com";
     let endpoint2 = "http://coolhost.com";
 
-    let host1_interval = rate_limit_client::TimeInterval::ByHours;
-    let host2_interval = rate_limit_client::TimeInterval::ByMinutes;
+    let host1_interval = TimeInterval::ByHours;
+    let host2_interval = TimeInterval::ByMinutes;
     let config = ConfigWithClock {
         base: Config {
             quota: NonZeroU32::new(1).unwrap(),
