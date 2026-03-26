@@ -1,6 +1,6 @@
 //! This module contains every error structs for error handling. 
 use std::fmt;
-
+use std::error::Error;
 /// Error for client operations.
 #[derive(Debug)]
 pub enum HttpClientError {
@@ -25,6 +25,8 @@ impl fmt::Display for HttpClientError {
         }
     }
 }
+
+impl Error for HttpClientError {}
 
 impl From<reqwest::Error> for HttpClientError {
     fn from(e: reqwest::Error) -> Self {
