@@ -18,10 +18,10 @@ pub enum HttpClientError {
 impl fmt::Display for HttpClientError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            HttpClientError::HostNotFound(e) => write!(f, "Host not registred: {e}"),
-            HttpClientError::ParseHostError(e) => write!(f, "Invalid url: {e}"),
-            HttpClientError::Request(e) => write!(f, "Request Failed: {e}"),
-            HttpClientError::NoHostname(e) => write!(f, "The url does not have a host: {e}")
+            HttpClientError::HostNotFound(e) => write!(f, "host not registred: {e}"),
+            HttpClientError::ParseHostError(e) => write!(f, "invalid url: {e}"),
+            HttpClientError::Request(e) => write!(f, "request failed: {e}"),
+            HttpClientError::NoHostname(e) => write!(f, "the url does not have a host: {e}")
         }
     }
 }
